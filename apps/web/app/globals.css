@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0a0e14;
+  --panel: #10161f;
+  --panel2: #141c28;
+  --border: #1e2936;
+  --text: #c9d4e3;
+  --muted: #71809a;
+  --green: #22c55e;
+  --red: #ef4444;
+  --amber: #f59e0b;
+  --blue: #38bdf8;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 13px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.panel-title {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.status-live {
+  color: var(--green);
+}
+.status-stale {
+  color: var(--amber);
+}
+.status-disconnected,
+.status-no_data {
+  color: var(--red);
+}
+.status-simulated {
+  color: var(--blue);
+}
+
+.up {
+  color: var(--green);
+}
+.down {
+  color: var(--red);
+}
