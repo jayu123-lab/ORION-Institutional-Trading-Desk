@@ -1,0 +1,22 @@
+{
+  "_default": {
+    "macro": 0.20,
+    "technical": 0.15,
+    "liquidity": 0.20,
+    "order_flow": 0.20,
+    "news": 0.10,
+    "quant": 0.15
+  },
+  "metal": {
+    "macro": 0.25, "technical": 0.15, "liquidity": 0.25,
+    "order_flow": 0.20, "news": 0.05, "quant": 0.10
+  },
+  "crypto": {
+    "macro": 0.10, "technical": 0.15, "liquidity": 0.25,
+    "order_flow": 0.30, "news": 0.10, "quant": 0.10
+  },
+  "index": {
+    "macro": 0.25, "technical": 0.20, "liquidity": 0.15,
+    "order_flow": 0.15, "news": 0.10, "quant": 0.15
+  }
+}

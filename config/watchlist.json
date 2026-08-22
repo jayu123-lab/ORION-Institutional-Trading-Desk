@@ -1,0 +1,11 @@
+{
+  "symbols": [
+    "XAUUSD", "MGC", "GC", "XAGUSD",
+    "NASDAQ", "NQ", "SPX", "ES", "DAX",
+    "BTCUSD", "ETHUSD", "XRPUSD", "SOLUSD",
+    "DXY",
+    "US10Y", "US02Y",
+    "EURUSD", "GBPUSD"
+  ],
+  "_comment": "Editable watchlist; API reads this file on each request."
+}
