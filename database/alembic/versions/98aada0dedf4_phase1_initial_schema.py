@@ -7,8 +7,8 @@ Create Date: 2026-08-23 01:38:59.906519
 
 from __future__ import annotations
 
-from alembic import op  # noqa: F401
 import sqlalchemy as sa  # noqa: F401
+from alembic import op  # noqa: F401
 
 revision = '98aada0dedf4'
 down_revision = None
