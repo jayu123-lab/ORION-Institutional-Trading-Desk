@@ -11,7 +11,8 @@ no frescos.
 |---|---|---|---|
 | `simulated` | interno | ACTIVO (SIMULATED) | Generador determinista para desarrollo/paper. Siempre etiquetado `SIMULATED`. |
 | TradingView webhook | push | ACTIVO (webhook) | POST `/hooks/tradingview` con header `X-ORION-Secret`. La calidad depende del plan del usuario. |
-| Polymarket Gamma/CLOB | REST read-only | ADAPTADOR LISTO | Endpoints verificados abajo. Sin credenciales necesarias para lectura. |
+| Polymarket Gamma/CLOB | REST read-only | ACTIVO | Endpoints verificados abajo. Sin credenciales necesarias para lectura. |
+| Polymarket RTDS WS | WebSocket read-only | **ACTIVO (LIVE)** | Precios crypto en tiempo real: BTCUSD/ETHUSD/SOLUSD/XRPUSD. Ver sección Polymarket. |
 | Brokers (IBKR, etc.) | ejecución | NO IMPLEMENTADO (Fase 5) | Interfaces definidas en `providers/brokers/base.py`. |
 
 ## Polymarket (verificado contra docs oficiales)
@@ -23,7 +24,17 @@ no frescos.
   - `GET /book?token_id=...`
   - `GET /midpoint?token_id=...`
   - `GET /last-trade-price?token_id=...`
-- WebSocket: `wss://ws-subscriptions-clob.polymarket.com/ws/market`
+- WebSocket market channel: `wss://ws-subscriptions-clob.polymarket.com/ws/market`
+  - Suscripción: `{"assets_ids": ["<token_id>"], "type": "market"}`
+  - Heartbeat: enviar texto `PING` cada 10 s (respuesta `PONG`)
+- RTDS (`wss://ws-live-data.polymarket.com`) — **en producción** vía
+  `python -m apps.monitor.polymarket_ws`:
+  - Tema `crypto_prices` (feed Binance): btc/eth/sol/xrp → BTCUSD, ETHUSD,
+    SOLUSD, XRPUSD con calidad LIVE.
+  - Heartbeat: `PING` cada 5 s. El primer frame tras conectar llega vacío.
+  - Gotcha verificado en vivo: el filtro server-side documentado
+    (`"filters": "btcusdt,ethusdt"`) no devuelve eventos; se suscribe sin
+    filtro y el parser descarta símbolos fuera del mapa client-side.
 
 Gotcha conocido: los campos tipo `outcomePrices` llegan como **string JSON**
 (`"[\"0.52\",\"0.48\"]"`), no como array. El adapter lo normaliza con

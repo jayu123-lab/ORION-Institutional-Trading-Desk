@@ -8,7 +8,7 @@ Convención: `[P#]` fase, `[agent]` responsable sugerido. Marcar `[x]` al cerrar
 - [x] [P1][infra] pyproject + requirements + tooling (ruff, mypy, pytest)
 - [x] [P1][infra] docker-compose (api, web, monitor, postgres, redis)
 - [x] [P1][infra] CI GitHub Actions (tests/lint/typecheck/secrets)
-- [ ] [P2][infra] Alembic revision inicial autogenerada contra Postgres
+- [x] [P2][infra] Alembic revision inicial autogenerada (98aada0dedf4; dev DB stamped)
 - [ ] [P2][infra] Makefile/justfile equivalentes PowerShell
 
 ## OpenCode / agentes
@@ -38,7 +38,8 @@ Convención: `[P#]` fase, `[agent]` responsable sugerido. Marcar `[x]` al cerrar
 - [x] [P1][tv] TradingViewWebhookReceiver (POST JSON autenticado, guarda alerta)
 - [x] [P1][pm] PolymarketAdapter (Gamma markets/events, CLOB book/price; parsing outcomePrices)
 - [x] [P1][sim] SimulatedDataProvider etiquetado SIMULATED (paper/demo only)
-- [ ] [P2][pm] PolymarketWsMonitor (ws-subscriptions-clob, reconexión, heartbeat)
+- [x] [P2][pm] PolymarketWsMonitor RTDS crypto_prices LIVE (BTCUSD/ETHUSD/SOLUSD/XRPUSD;
+      reconexión exponencial, heartbeat PING 5s, filtro client-side — ver docs/DATA_SOURCES.md)
 - [ ] [P2][md] RESTAdapter genérico + adaptadores concretos según claves disponibles
 - [ ] [P5][brokers] IBKR/Alpaca/OANDA/Binance adapters (doc oficial primero)
 

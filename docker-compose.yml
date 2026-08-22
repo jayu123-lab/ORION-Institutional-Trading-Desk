@@ -34,6 +34,18 @@ services:
       - api
     restart: unless-stopped
 
+  polymarket-ws:
+    build:
+      context: .
+      dockerfile: apps/monitor/Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://orion:orion@postgres:5432/orion
+    command: ["python", "-m", "apps.monitor.polymarket_ws"]
+    depends_on:
+      - api
+    restart: unless-stopped
+
   web:
     build:
       context: .
