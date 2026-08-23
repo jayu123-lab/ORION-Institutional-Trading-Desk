@@ -16,6 +16,8 @@ from sqlalchemy import desc, select
 
 from core.config import get_settings
 from core.desk.context import ContextBuilder
+from core.desk.journal import record_decision
+from core.desk.modes import MODES
 from core.desk.router import IntentRouter
 from core.desk.specialists import SPECIALIST_FUNCS, SpecialistOpinion
 from core.memory.models import Analysis, Quote
@@ -51,6 +53,15 @@ class CIOOrchestrator:
                 out = self._system_report(decision)
             elif decision.intent == "DESK_DEBATE":
                 out = await self._run_debate(decision, activity)
+            elif decision.intent == "GOLD_PLAYBOOK":
+                out = await self._run_playbook("gold", decision.asset or "XAUUSD",
+                                               activity)
+            elif decision.intent == "XRP_PLAYBOOK":
+                out = await self._run_playbook("xrp", "XRPUSD", activity)
+            elif decision.intent in MODES:
+                out = await self._run_mode(decision, activity)
+            elif decision.intent == "WATCH":
+                out = await self._run_watch(decision, question, activity)
             else:
                 out = await self._run_pipeline(decision, question, activity)
 
@@ -117,14 +128,56 @@ class CIOOrchestrator:
             "status": "warn" if audit["gaps"] else "ok",
         })
 
-        reply = self._synthesize(asset, decision, ctx, opinions, risk_view, audit)
+        # --- doctrine scoring (P11-P14) from the SAME verified context
+        from core.playbooks.base import score_context
+
+        scoring = score_context(ctx)
+        activity.append({"agent": "quant-architect",
+                         "action": "doctrine scored (bias/trade-quality/decision)",
+                         "status": "ok"})
+
+        reply = self._synthesize(asset, decision, ctx, opinions, risk_view, audit,
+                                 scoring)
         sources = self._collect_sources(ctx)
+
+        # --- P16 memory loop: persist the decision for later outcome review
+        bias_score = scoring.get("bias_score") or {}
+        tq = scoring.get("trade_quality") or {}
+        dec = scoring.get("decision") or {}
+        clock = ((ctx.get("session") or {}).get("value") or {})
+        journal_id = record_decision(
+            self.session_factory,
+            symbol=asset,
+            session_name=", ".join(clock.get("active") or []) or None,
+            bias=next((ln.split(":")[1].strip() for ln in reply.splitlines()
+                       if ln.startswith("BIAS:")), None),
+            bias_score=bias_score.get("total"),
+            trade_quality=tq.get("total"),
+            decision=("NO_TRADE" if risk_view["blocked"]
+                      else dec.get("status", "WAIT")),
+            entry_conditions={"checks": dec.get("checks"), "reasons": dec.get("reasons")},
+            liquidity_snapshot={
+                k: tech for k, tech in ((ctx.get("technicals") or {}).items())
+                if isinstance(tech, dict)},
+            risk_verdict=((risk_view.get("snapshot") or {}).get("verdict")),
+            reference_price=(ctx.get("price") or {}).get("value")
+            if isinstance((ctx.get("price") or {}).get("value"), (int, float))
+            else None,
+        )
+        if journal_id is not None:
+            sources.append({"field": "doctrine_journal", "source": "db:journal",
+                            "ts": None, "provenance": "DERIVED", "id": journal_id})
         return {
             "reply": reply,
             "routing": decision.to_dict(),
             "activity": activity,
             "sources": sources,
             "audit": audit,
+            "scores": {
+                "bias_score": bias_score,
+                "trade_quality": tq,
+                "decision": dec,
+            },
         }
 
     def _risk_gate(self, ctx: dict, opinions: list[SpecialistOpinion]) -> dict:
@@ -196,7 +249,8 @@ class CIOOrchestrator:
         }
 
     # ------------------------------------------------------------- synthesis
-    def _synthesize(self, asset, decision, ctx, opinions, risk_view, audit) -> str:  # noqa: ANN001
+    def _synthesize(self, asset, decision, ctx, opinions, risk_view, audit,
+                    scoring: dict | None = None) -> str:  # noqa: ANN001
         ms = ctx.get("market_state") or {}
         bias_votes = [op.stance for op in opinions if op.stance in ("LONG", "SHORT")]
         long_n, short_n = bias_votes.count("LONG"), bias_votes.count("SHORT")
@@ -213,9 +267,21 @@ class CIOOrchestrator:
         weakest = audit["weakest_specialist_confidence"]
         confidence = _cap(weakest, confidence)
 
+        bias_score = (scoring or {}).get("bias_score") or {}
+        tq = (scoring or {}).get("trade_quality") or {}
+        dec = (scoring or {}).get("decision") or {}
+        doctrine_status = ("NO_TRADE" if risk_view["blocked"]
+                           else dec.get("status", "WAIT"))
+
         price = (ctx.get("price") or {}).get("value")
         lines: list[str] = [f"ORION CIO — {asset} DESK READ", ""]
         lines.append(f"BIAS: {bias}")
+        lines.append(f"BIAS SCORE: {bias_score.get('total', 'n/a')} "
+                     f"({bias_score.get('band', 'NEUTRAL')}) [missing inputs: "
+                     f"{', '.join(bias_score.get('missing_inputs') or []) or 'none'}]")
+        lines.append(f"TRADE QUALITY: {tq.get('total', 'n/a')}")
+        lines.append(f"DECISION: {doctrine_status}"
+                     + (f" — {dec['reasons'][0]}" if dec.get("reasons") else ""))
         cap_note = (
             f" (capped — data gaps: {', '.join(audit['gaps'])})" if audit["gaps"] else ""
         )
@@ -262,6 +328,12 @@ class CIOOrchestrator:
             lines.append("- NO TRADE — veto active. Re-evaluate after conditions clear.")
             for r in risk_view["reasons"]:
                 lines.append(f"  · {r}")
+        elif doctrine_status in ("WAIT", "NO_TRADE", "REJECT"):
+            lines.append(f"- WAIT — doctrine gate: {doctrine_status}.")
+            for r in (dec.get("reasons") or [])[:3]:
+                lines.append(f"  · {r}")
+            lines.append("  · a bias is NOT an entry: level + reaction + confirmation"
+                         " + R:R ≥ 2 required")
         elif bias == "WAIT" or bias == "NEUTRAL":
             lines.append("- WAIT — no edge worth institutional risk right now.")
         else:
@@ -379,6 +451,135 @@ class CIOOrchestrator:
                 "activity": activity, "sources": sources,
                 "audit": {"verdict": debate.audit_overall, "gaps": debate.discrepancies}}
 
+    # ------------------------------------------------------- doctrine modes
+    async def _run_playbook(self, kind: str, asset: str, activity: list[dict]) -> dict:
+        """P3/P4 — Gold & XRP playbooks."""
+        if kind == "gold":
+            from core.playbooks.gold import run_gold_playbook
+
+            result = await run_gold_playbook(self.session_factory, asset)
+            primary = "metals-analyst"
+        else:
+            from core.playbooks.xrp import run_xrp_playbook
+
+            result = await run_xrp_playbook(self.session_factory)
+            primary = "crypto-analyst"
+            asset = "XRPUSD"
+
+        for agent in (primary, "macro-strategist", "liquidity-analyst",
+                      "positioning-analyst", "crossasset-analyst",
+                      "news-intelligence", "quant-architect", "risk-manager",
+                      "audit-agent"):
+            self.registry.record_run(agent)
+        activity.append({"agent": primary,
+                         "action": f"{kind.upper()} playbook assembled",
+                         "status": "ok"})
+        activity.append({"agent": "quant-architect",
+                         "action": "doctrine scores computed", "status": "ok"})
+
+        stack = result.get("stack") or {}
+        smap = stack.get("session_levels") or {}
+        gaps: list[str] = ["volume/order-flow feed (NOT AVAILABLE)"]
+        if smap.get("missing"):
+            gaps.append(f"session candle history ({len(smap['missing'])} levels)")
+        sources = self._collect_sources(result.get("ctx") or {})
+        return {
+            "reply": result["brief"],
+            "routing": {"intent": f"{kind.upper()}_PLAYBOOK", "asset": asset,
+                        "asset_class": "metal" if kind == "gold" else "crypto"},
+            "activity": activity,
+            "sources": sources,
+            "audit": {"verdict": "PASS_WITH_GAPS", "gaps": gaps,
+                      "confidence_cap": "MODERATE"},
+            "scores": {"bias_score": stack.get("bias_score"),
+                       "trade_quality": stack.get("trade_quality"),
+                       "decision": stack.get("decision")},
+            "doctrine": stack,
+        }
+
+    async def _run_mode(self, decision, activity: list[dict]) -> dict:  # noqa: ANN001
+        """P15 — PRE-LONDON / PRE-NY / DAILY CLOSE briefs."""
+        from core.desk.modes import build_mode_brief
+
+        result = await build_mode_brief(self.session_factory, decision.intent,
+                                        decision.asset)
+        for agent in ("macro-strategist", "liquidity-analyst", "news-intelligence",
+                      "risk-manager", "audit-agent"):
+            self.registry.record_run(agent)
+        activity.append({"agent": "macro-strategist",
+                         "action": f"{decision.intent} brief compiled", "status": "ok"})
+        # persist to Memory (analyses.kind='cio_brief')
+        try:
+            with self.session_factory() as session:
+                session.add(Analysis(
+                    agent="orion-cio", asset=result["symbol"], kind="cio_brief",
+                    input_data={"mode": decision.intent},
+                    output_summary=result["reply"][:1000],
+                    full_output=result["reply"], stance=None, confidence=None,
+                    model="deterministic-cio-v1"))
+                session.commit()
+        except Exception:  # noqa: BLE001
+            logger.exception("could not persist CIO mode brief")
+        return {
+            "reply": result["reply"],
+            "routing": decision.to_dict(),
+            "activity": activity,
+            "sources": [{"field": "session_map", "source": "core.doctrine",
+                         "ts": None, "provenance": "DERIVED"}],
+            "audit": {"verdict": "PASS_WITH_GAPS",
+                      "gaps": ["outcome evaluation pending (memory loop)"]},
+            "scores": {
+                "bias_score": (result.get("stack") or {}).get("bias_score"),
+                "trade_quality": (result.get("stack") or {}).get("trade_quality"),
+                "decision": (result.get("stack") or {}).get("decision")},
+            "doctrine": result.get("stack"),
+        }
+
+    async def _run_watch(self, decision, question: str, activity: list[dict]) -> dict:
+        """P34 — WATCH MODE. Surveillance only, NEVER executes."""
+        from core.desk.watch import create_watch, evaluate_watches
+
+        asset = decision.asset or "XAUUSD"
+        note = question[:500]
+        zone_low = zone_high = None
+        try:
+            ctx = await self.context_builder.build(asset)
+            zone = ((ctx.get("technicals") or {}).get("orion_range_2_6") or {})
+            band = zone.get("zone_band")
+            if isinstance(band, (list, tuple)) and len(band) == 2:
+                zone_low, zone_high = float(band[0]), float(band[1])
+        except Exception as exc:  # noqa: BLE001 — provisional band is acceptable
+            logger.info("watch zone derivation fell back to provisional: %s", exc)
+        watch = create_watch(self.session_factory, asset, note,
+                             zone_low=zone_low, zone_high=zone_high)
+        states = evaluate_watches(self.session_factory)
+        self.registry.record_run("market-data-engineer")
+        activity.append({"agent": "market-data-engineer",
+                         "action": f"watch #{watch['id']} on {asset}",
+                         "status": "ok"})
+        lines = [
+            f"ORION WATCH MODE — {asset}",
+            f"- watch id: {watch['id']} · state: {watch['state']}",
+            f"- reaction zone: {watch['zone']}" if watch["zone"] else
+            "- reaction zone: provisional (±band around live quote until "
+            "candles allow ORION_RANGE_2_6)",
+            "- sequence: WATCHING → ARMED (price in zone) → CONFIRMED (mechanical "
+            "reaction) | INVALIDATED/CANCELLED by you",
+            "- WATCH MODE NEVER EXECUTES ORDERS.",
+            f"- active watches: {len(states)}",
+        ]
+        return {
+            "reply": "\n".join(lines),
+            "routing": decision.to_dict(),
+            "activity": activity,
+            "sources": [{"field": "watch", "source": "db:watch_requests",
+                         "ts": watch["ts"], "provenance": "VERIFIED"}],
+            "audit": {"verdict": "PASS",
+                      "gaps": [] if watch["zone"] else ["no stored candles yet — "
+                                                        "provisional band"]},
+            "watch": watch,
+        }
+
     # ----------------------------------------------------------------- macro
     def _macro_only_reply(self, activity: list[dict]) -> dict:
         from core.sessions import desk_clock
@@ -443,7 +644,7 @@ class CIOOrchestrator:
 
     # ------------------------------------------------------------ persistence
     def _persist_analysis(self, out: dict, decision, question: str) -> None:  # noqa: ANN001
-        if decision.intent == "SYSTEM":
+        if decision.intent in ("SYSTEM", "WATCH"):
             return
         try:
             with self.session_factory() as session:

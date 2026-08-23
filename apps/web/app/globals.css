@@ -56,3 +56,31 @@ body {
 .down {
   color: var(--red);
 }
+
+/* ORION Command Center — CSS-only animations (no JS render loops) */
+@keyframes orion-pulse-kf {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0.6px rgba(56, 189, 248, 0.9));
+  }
+  50% {
+    filter: drop-shadow(0 0 2.4px rgba(56, 189, 248, 1));
+  }
+}
+.orion-pulse {
+  animation: orion-pulse-kf 1.1s ease-in-out infinite;
+}
+
+@keyframes orion-node-active-kf {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+.orion-node-active circle,
+.orion-node-active text {
+  animation: orion-node-active-kf 1.6s ease-in-out infinite;
+}

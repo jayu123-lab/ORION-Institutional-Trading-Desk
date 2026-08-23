@@ -60,6 +60,41 @@ cd apps/web; npm install; npm run dev
 docker compose up --build
 ```
 
+## Command Center
+
+Con API y frontend iniciados, abre `http://localhost:3000/command`. El Command Center
+muestra el estado real de servicios, ticker, inteligencia, actividad del CIO y terminal
+multiagente. El arranque indica explícitamente feeds degradados o datos no disponibles.
+
+## Launcher de escritorio (Windows)
+
+Desde PowerShell en la raíz del repositorio:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\scripts\install_orion_desktop.ps1
+```
+
+El acceso directo crea o actualiza `ORION Institutional Desk.lnk` en el Escritorio y
+abre `/command` en Edge o Chrome App Mode cuando están disponibles. El launcher inicia
+API y frontend solo si no están saludables. Para detenerlos: `.\scripts\stop_orion.ps1`.
+
+## Traducción y doctrina
+
+El idioma inicial es español (`ORION_UI_LANGUAGE=es`); el Command Center permite cambiar
+entre español, inglés, francés, alemán, italiano y portugués. `AUTO TRANSLATE` puede
+desactivarse y `VIEW ORIGINAL` conserva el texto fuente. La traducción local protege
+tickers, precios, URLs e identificadores.
+
+La doctrina ORION separa contexto, liquidez, nivel, reacción, confirmación, riesgo y
+ejecución. Un sweep no es una entrada; el R:R mínimo es 1:2; el riesgo puede vetar
+cualquier idea; y la ausencia de datos se presenta como `NOT AVAILABLE`. Todo permanece
+en paper mode y requiere aprobación humana para cualquier ejecución.
+
+Playbooks disponibles: Gold/XAUUSD (prioriza MGC fresco y etiqueta GC=F como proxy) y
+XRP (noticias Ripple son event-risk y nunca convierten automáticamente a LONG). Modos:
+Pre-London, Pre-NY y Daily Close. El journal y Watch Mode no ejecutan órdenes.
+
 ## Agentes OpenCode
 
 Abrir `opencode` en la raíz del repo. El agente primario es **ORION-CIO**, que invoca

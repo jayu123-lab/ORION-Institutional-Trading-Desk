@@ -392,3 +392,51 @@ class TradingViewAlert(Base):
     volume: Mapped[float | None] = mapped_column(Float)
     raw: Mapped[dict | None] = mapped_column(JSON)
     received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class DoctrineJournal(Base):
+    """P16 — operational memory loop (statistics, NOT model training).
+
+    Stores every CIO doctrine decision with its context so outcomes
+    (MFE/MAE, correct bias?, correct entry?, lesson) can be evaluated
+    later against real candles. Weights are never auto-modified.
+    """
+
+    __tablename__ = "doctrine_journal"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    symbol: Mapped[str] = mapped_column(String(24), index=True)
+    session_name: Mapped[str | None] = mapped_column(String(24))
+    bias: Mapped[str | None] = mapped_column(String(24))          # LONG/SHORT/NEUTRAL/WAIT
+    bias_score: Mapped[int | None] = mapped_column(Integer)
+    trade_quality: Mapped[int | None] = mapped_column(Integer)
+    decision: Mapped[str] = mapped_column(String(24))             # TRADE/WAIT/REJECT/NO_TRADE
+    entry_conditions: Mapped[dict | None] = mapped_column(JSON)
+    liquidity_snapshot: Mapped[dict | None] = mapped_column(JSON)
+    risk_verdict: Mapped[str | None] = mapped_column(String(24))
+    reference_price: Mapped[float | None] = mapped_column(Float)
+    ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+    # --- outcome block, filled by evaluate_journal_outcome()
+    outcome_status: Mapped[str | None] = mapped_column(String(24))  # PENDING|EVALUATED
+    mfe: Mapped[float | None] = mapped_column(Float)
+    mae: Mapped[float | None] = mapped_column(Float)
+    correct_bias: Mapped[bool | None] = mapped_column(Boolean)
+    correct_entry: Mapped[bool | None] = mapped_column(Boolean)
+    lesson_learned: Mapped[str | None] = mapped_column(Text)
+    evaluated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class WatchRequest(Base):
+    """P34 — WATCH MODE. Surveillance only; NEVER executes orders."""
+
+    __tablename__ = "watch_requests"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    symbol: Mapped[str] = mapped_column(String(24), index=True)
+    note: Mapped[str | None] = mapped_column(Text)                # user's own words
+    zone_low: Mapped[float | None] = mapped_column(Float)         # reaction zone band
+    zone_high: Mapped[float | None] = mapped_column(Float)
+    state: Mapped[str] = mapped_column(String(16), default="WATCHING")
+    # WATCHING -> ARMED -> CONFIRMED | INVALIDATED; CANCELLED anytime
+    state_ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_by: Mapped[str | None] = mapped_column(String(48))
+    ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)

@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     orion_embedded_quote_interval_sec: int = 60
     orion_embedded_news_interval_sec: int = 600
 
+    # ORION UI language (P20): es default; es|en|fr|de|it|pt
+    orion_ui_language: str = "es"
+
     # Multi-asset feeds (see docs/DATA_SOURCES.md)
     orion_yahoo_enabled: bool = True  # indices/commodities/stocks/FX/rates (unofficial API)
     orion_coinbase_enabled: bool = True  # crypto spot majors via public exchange ticker

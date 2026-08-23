@@ -94,8 +94,12 @@ class ContextBuilder:
                 ts=candles[-1].ts_open.isoformat(),
                 extra={"timeframe": tf_used},
             )
+            ctx["technicals"] = self._technicals(symbol, candles, tf_used, atr)
         else:
             ctx["candles"] = not_available(f"only {len(candles)} stored {tf_used} candles")
+            ctx["technicals"] = {"session_levels": None, "liquidity": None,
+                                 "orion_range_2_6": None, "sweeps": [],
+                                 "reason": f"only {len(candles)} candles stored"}
 
         # --- market brain state (regime/momentum/vol/liquidity/macro score)
         ms = await self.brain.build(symbol)
@@ -189,6 +193,32 @@ class ContextBuilder:
         return ctx
 
     # ---------------------------------------------------------------- internals
+    def _technicals(self, symbol: str, candles: list, tf: str, atr: float | None) -> dict:
+        """P5-P8 doctrine layers derived from the SAME real candle rows."""
+        try:
+            from core.doctrine.liquidity import build_liquidity_map, detect_sweeps
+            from core.doctrine.range26 import orion_range_zone
+            from core.doctrine.session_engine import compute_session_map
+
+            smap = compute_session_map(candles, timeframe=tf)
+            session_vals = {lv.name: lv.value for lv in smap.levels
+                            if lv.value is not None}
+            price = self._latest_quote(symbol)
+            last_price = float(price.price) if price and price.price else None
+            lq = build_liquidity_map(candles, last_price, session_vals, atr)
+            zone = orion_range_zone(
+                candles, atr=atr, liquidity_levels=lq.all_levels(),
+                session_levels=session_vals)
+            return {
+                "session_levels": smap.to_dict(),
+                "liquidity": lq.to_dict(),
+                "orion_range_2_6": zone.to_dict() if zone else None,
+                "sweeps": [s.to_dict() for s in detect_sweeps(candles, lq)],
+            }
+        except Exception as exc:  # noqa: BLE001 — technicals must never kill context
+            return {"session_levels": None, "liquidity": None,
+                    "orion_range_2_6": None, "sweeps": [], "reason": str(exc)}
+
     def _candles_single_tf(self, symbol: str) -> tuple[list, str]:
         """Bars of ONE timeframe (H1 preferred), so ATR/structure stay coherent."""
         from core.memory.models import Candle as DBCandle

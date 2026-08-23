@@ -31,7 +31,8 @@ MACRO_SYMBOLS = {"DXY", "US10Y", "US13W", "US02Y", "VIX"}
 INTENTS = (
     "MARKET_ANALYSIS", "TRADE_PLAN", "MACRO", "NEWS", "RISK", "POSITIONING",
     "LIQUIDITY", "CROSS_ASSET", "CRYPTO", "METALS", "EQUITIES", "SYSTEM",
-    "DESK_DEBATE",
+    "DESK_DEBATE", "GOLD_PLAYBOOK", "XRP_PLAYBOOK",
+    "PRE_LONDON", "PRE_NY", "DAILY_CLOSE", "WATCH",
 )
 
 
@@ -82,6 +83,17 @@ class IntentRouter:
     """Deterministic message classifier feeding the CIO pipeline."""
 
     _INTENT_KEYWORDS: list[tuple[str, tuple[str, ...]]] = [
+        # doctrine modes / playbooks / watch — checked FIRST (P3-P4, P15, P34)
+        ("GOLD_PLAYBOOK", ("gold playbook", "playbook oro", "playbook de oro",
+                           "playbook del oro")),
+        ("XRP_PLAYBOOK", ("xrp playbook", "playbook xrp", "playbook de xrp")),
+        ("PRE_LONDON", ("pre-london", "prelondres", "pre londres", "pre-londres",
+                        "prelondon")),
+        ("PRE_NY", ("pre-ny", "pre ny", "preny", "pre new york", "pre-nueva york")),
+        ("DAILY_CLOSE", ("daily close", "cierre del dia", "cierre del día",
+                         "cierre diario", "cierre de jornada")),
+        ("WATCH", ("vigila", "vigilar", "vigilame", "avísame si", "avisame si",
+                   "watch ", "watching")),
         ("DESK_DEBATE", ("convoca", "convoca la mesa", "debate", "mesa para", "reunir la mesa")),
         ("TRADE_PLAN", ("compraria", "comprarías", "comprar", "vender", "vendería",
                         "trade plan", "entrada", "señal", "signal", "buy", "sell",
@@ -142,6 +154,10 @@ class IntentRouter:
         return None, None
 
     def _agents_for(self, intent: str, asset: str | None, a_class: str | None) -> list[str]:
+        if intent in ("GOLD_PLAYBOOK", "XRP_PLAYBOOK", "PRE_LONDON", "PRE_NY",
+                      "DAILY_CLOSE", "WATCH"):
+            # doctrine modes assemble their own stack — only gates accompany
+            return ["market-data-engineer", "risk-manager", "audit-agent"]
         if intent == "SYSTEM":
             return ["market-data-engineer", "audit-agent"]
         if intent == "DESK_DEBATE":
