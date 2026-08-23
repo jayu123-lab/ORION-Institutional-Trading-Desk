@@ -1,0 +1,52 @@
+diff --git a/apps/api/main.py b/apps/api/main.py
+index 2882c4a..e371413 100644
+--- a/apps/api/main.py
++++ b/apps/api/main.py
+@@ -1,4 +1,4 @@
+-﻿"""ORION API entrypoint.
++"""ORION API entrypoint.
+ 
+ Run: uvicorn apps.api.main:app --reload --port 8000
+ """
+@@ -30,12 +30,24 @@ async def lifespan(app: FastAPI):
+     bus = get_event_bus()
+     bus.start()
+     ws_task: asyncio.Task | None = None
++    data_task: asyncio.Task | None = None
++    data_service = None
++    if get_settings().orion_embedded_data:
++        from apps.api.background import EmbeddedDataService
++
++        data_service = EmbeddedDataService()
++        data_task = asyncio.create_task(data_service.run_forever(), name="embedded-market-data")
++
+     if get_settings().orion_polymarket_ws_embedded:
+         from apps.monitor.polymarket_ws import PolymarketWSMonitor
+ 
+         monitor = PolymarketWSMonitor()
+         ws_task = asyncio.create_task(monitor.run_forever(), name="polymarket-ws")
+     yield
++    if data_service is not None:
++        await data_service.stop()
++    if data_task is not None:
++        data_task.cancel()
+     if ws_task is not None:
+         ws_task.cancel()
+     await bus.stop()
+diff --git a/core/config.py b/core/config.py
+index 0f9c216..9baf1ca 100644
+--- a/core/config.py
++++ b/core/config.py
+@@ -30,6 +30,12 @@ class Settings(BaseSettings):
+     # events reach /ws/events without an external bus (single-node local desk).
+     orion_polymarket_ws_embedded: bool = False
+ 
++    # Local convenience: populate dashboard even if standalone monitor is not running.
++    # Disable this when running `python -m apps.monitor.main` to avoid duplicate ingestion.
++    orion_embedded_data: bool = True
++    orion_embedded_quote_interval_sec: int = 60
++    orion_embedded_news_interval_sec: int = 600
++
+     # Multi-asset feeds (see docs/DATA_SOURCES.md)
+     orion_yahoo_enabled: bool = True  # indices/commodities/stocks/FX/rates (unofficial API)
+     orion_simulated_enabled: bool = False  # dev-only fallback, always tagged SIMULATED
