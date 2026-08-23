@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     # events reach /ws/events without an external bus (single-node local desk).
     orion_polymarket_ws_embedded: bool = False
 
+    # Local convenience: populate dashboard even if standalone monitor is not running.
+    # Disable this when running `python -m apps.monitor.main` to avoid duplicate ingestion.
+    orion_embedded_data: bool = True
+    orion_embedded_quote_interval_sec: int = 60
+    orion_embedded_news_interval_sec: int = 600
+
     # Multi-asset feeds (see docs/DATA_SOURCES.md)
     orion_yahoo_enabled: bool = True  # indices/commodities/stocks/FX/rates (unofficial API)
     orion_simulated_enabled: bool = False  # dev-only fallback, always tagged SIMULATED

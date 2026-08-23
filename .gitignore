@@ -26,6 +26,10 @@ node_modules/
 .next/
 out/
 npm-debug.log*
+*.tsbuildinfo
+
+# --- Hypothesis ---
+.hypothesis/
 
 # --- Datos locales ---
 data/*.db
