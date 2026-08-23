@@ -6,8 +6,23 @@ type SystemStatus = {
   database: { status: string; engine: string };
   overall: string;
   feeds: { source: string; kind: string; status: string; last_update: string | null }[];
+  services?: {
+    service: string;
+    state: string;
+    detail: string;
+  }[];
+  event_bus?: string;
   uptime_seconds: number;
   live_mode: boolean;
+};
+
+const STATE_CLS: Record<string, string> = {
+  HEALTHY: "up",
+  OPERATIONAL: "up",
+  IDLE: "text-[#71809a]",
+  DEGRADED: "text-[#f59e0b]",
+  STALE: "text-[#f59e0b]",
+  FAILED: "down",
 };
 
 function fmtUptime(s: number): string {
@@ -24,7 +39,7 @@ export default function StatusPage() {
       <div className="grid grid-cols-4 gap-4">
         <div className="panel p-4">
           <p className="text-[10px] text-[#71809a] uppercase">Overall</p>
-          <p className={`text-lg font-bold ${data?.overall === "OPERATIONAL" ? "up" : "down"}`}>
+          <p className={`text-lg font-bold ${data?.overall === "OPERATIONAL" ? "up" : data?.overall === "DEGRADED" ? "text-[#f59e0b]" : "down"}`}>
             {loading ? "…" : (data?.overall ?? "OFFLINE")}
           </p>
         </div>
@@ -45,6 +60,36 @@ export default function StatusPage() {
             {data?.live_mode ? "ENABLED ⚠" : "DISABLED"}
           </p>
         </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-title">Services Health · HEALTHY / DEGRADED / STALE / FAILED</div>
+        <table className="w-full text-[12px]">
+          <thead className="text-[#71809a] border-b border-[#1e2936]">
+            <tr>
+              <th className="text-left px-3 py-2">SERVICE</th>
+              <th className="text-left px-3 py-2">STATE</th>
+              <th className="text-left px-3 py-2">DETAIL</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(data?.services ?? []).map((s) => (
+              <tr key={s.service} className="border-b border-[#141c28] hover:bg-[#141c28]">
+                <td className="px-3 py-1.5 font-bold">{s.service}</td>
+                <td className={`px-3 py-1.5 ${STATE_CLS[s.state] ?? ""}`}>{s.state}</td>
+                <td className="px-3 py-1.5 text-[#71809a]">{s.detail}</td>
+              </tr>
+            ))}
+            {(data?.services ?? []).length === 0 && (
+              <tr><td colSpan={3} className="px-3 py-3 text-[#71809a]">
+                NO DATA AVAILABLE (API anterior a P15 — reiniciar)
+              </td></tr>
+            )}
+          </tbody>
+        </table>
+        {data?.event_bus && (
+          <p className="px-3 py-2 text-[10px] text-[#71809a]">EVENT BUS: {data.event_bus}</p>
+        )}
       </div>
 
       <div className="panel">
