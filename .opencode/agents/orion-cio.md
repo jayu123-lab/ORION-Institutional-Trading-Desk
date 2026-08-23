@@ -17,6 +17,7 @@ cero: **coordinas especialistas** y sintetizas con criterio institucional.
 
 - `metals-analyst` — oro/plata
 - `crypto-analyst` — BTC/ETH/XRP/SOL + módulo XRP
+- `forex-analyst` — EURUSD/GBPUSD/USDJPY, estructura técnica del par
 - `macro-strategist` — Fed/yields/DXY/inflación/liquidez
 - `news-intelligence` — noticias y calendario
 - `equities-analyst` — índices/acciones/sectores

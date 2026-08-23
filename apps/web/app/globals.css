@@ -84,3 +84,67 @@ body {
 .orion-node-active text {
   animation: orion-node-active-kf 1.6s ease-in-out infinite;
 }
+
+/* ---- P37: Command Center visual pass — CSS/SVG glow, no canvas, no render loops */
+
+.orion-priority-symbol {
+  position: relative;
+}
+
+@keyframes orion-flow-kf {
+  to {
+    stroke-dashoffset: -8;
+  }
+}
+.orion-flow-active {
+  stroke-dasharray: 1.4 2.2;
+  animation: orion-flow-kf 1.4s linear infinite;
+}
+
+@keyframes orion-orbit-spin-kf {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.orion-orbit-ring,
+.orion-orbit-ring-reverse {
+  /* SVG note: percentage transform-origin resolves against the <svg>
+     viewport (0 0 100 62), not this element's own center — use the exact
+     user-space coordinate (cx=50, cy=50 from CioWheel) so the ring spins
+     in place instead of swinging around the viewport's midpoint. */
+  transform-origin: 50px 50px;
+}
+.orion-orbit-ring {
+  animation: orion-orbit-spin-kf 90s linear infinite;
+}
+.orion-orbit-ring-reverse {
+  animation: orion-orbit-spin-kf 130s linear infinite reverse;
+}
+
+@keyframes orion-drift-kf {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.85;
+    transform: translateY(-1.2px);
+  }
+}
+.orion-dust circle {
+  animation: orion-drift-kf 4s ease-in-out infinite;
+}
+
+/* Ambient vignette behind the CIO wheel — pure CSS radial gradients, static paint */
+.orion-wheel-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 55% 60% at 50% 46%, rgba(56, 189, 248, 0.10), transparent 70%),
+    radial-gradient(ellipse 30% 34% at 50% 46%, rgba(239, 68, 68, 0.12), transparent 65%);
+}

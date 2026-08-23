@@ -168,6 +168,84 @@ def equities_analyst(ctx: dict) -> SpecialistOpinion:
                              f"Index read at {price:g}: {stance}.", points)
 
 
+def forex_analyst(ctx: dict) -> SpecialistOpinion:
+    """EURUSD/GBPUSD/USDJPY technical read, anchored to real DXY cross-data.
+
+    Distinct from macro_strategist: this reads the PAIR's own structure
+    (swing range, ATR, regime) and only uses DXY as a cross-check, never as
+    a substitute for the pair's own price action.
+    """
+    agent = "forex-analyst"
+    if not _price_ok(ctx):
+        return SpecialistOpinion(
+            agent, "WAIT", "LOW",
+            "No verified live quote for this FX pair — cannot form a technical view.",
+            ["price: NOT AVAILABLE or STALE"],
+        )
+    price = float(_val(ctx["price"]))
+    points: list[str] = []
+    stance, conf = "NEUTRAL", "MODERATE"
+
+    candles = _val(ctx.get("candles"))
+    ms = ctx.get("market_state") or {}
+    if isinstance(candles, dict):
+        hi, lo = candles.get("swing_high_20"), candles.get("swing_low_20")
+        atr = candles.get("atr")
+        if hi and lo and hi > lo:
+            pos = (price - lo) / max(hi - lo, 1e-9)
+            if pos >= 0.8:
+                stance = "LONG"
+                points.append(f"price {price:g} within {(pos * 100):.0f}% of swing high {hi:g}")
+            elif pos <= 0.2:
+                stance = "SHORT"
+                points.append(f"price {price:g} near 20-bar swing low {lo:g}")
+            else:
+                points.append(f"price mid-range ({(pos * 100):.0f}% of {lo:g}-{hi:g})")
+        elif hi is not None and hi == lo:
+            points.append("flat bar history — no usable range structure yet")
+        if atr:
+            atr_pct = atr / price * 100
+            points.append(f"ATR(14) {atr:.4f} = {atr_pct:.2f}% of price")
+            if atr_pct > 1.0:
+                conf = "LOW"
+                points.append("volatility elevated for FX majors — widen stops or stand aside")
+
+    regime = ms.get("regime")
+    if regime == "TRENDING":
+        points.append(f"regime TRENDING (momentum {ms.get('momentum_score')})")
+    elif regime:
+        points.append(f"regime {regime}")
+
+    corr = ctx.get("correlations") or {}
+    dxy_key = next((k for k in corr if k.endswith("/DXY")), None)
+    if dxy_key:
+        dxy_corr = _val(corr[dxy_key])
+        if isinstance(dxy_corr, (int, float)):
+            points.append(f"DXY correlation {dxy_corr:+.2f}")
+            if dxy_corr > -0.3:
+                points.append("correlation weaker than the usual inverse-USD relationship — flag divergence")
+
+    extras = ctx.get("extra_quotes") or {}
+    dxy_status = _status(extras.get("DXY"))
+    if dxy_status not in ("LIVE", "STALE", "DELAYED"):
+        points.append("DXY quote unavailable — USD leg of thesis unverified")
+    us10y = _val(extras.get("US10Y"))
+    if isinstance(us10y, (int, float)):
+        points.append(f"US10Y {us10y:g} (rate-differential context)")
+
+    session = _val(ctx.get("session")) or {}
+    active = session.get("active") if isinstance(session, dict) else None
+    if isinstance(active, list) and not any(s in active for s in ("LONDON", "NEW_YORK")):
+        conf = "LOW"
+        points.append("outside London/NY hours — thin liquidity, treat levels cautiously")
+
+    return SpecialistOpinion(
+        agent, stance, conf,
+        f"FX technical read at {price:g}: {stance}, {conf.lower()} confidence.",
+        points,
+    )
+
+
 def macro_strategist(ctx: dict) -> SpecialistOpinion:
     agent = "macro-strategist"
     ms = ctx.get("market_state") or {}
@@ -312,6 +390,7 @@ SPECIALIST_FUNCS = {
     "metals-analyst": metals_analyst,
     "crypto-analyst": crypto_analyst,
     "equities-analyst": equities_analyst,
+    "forex-analyst": forex_analyst,
     "macro-strategist": macro_strategist,
     "liquidity-analyst": liquidity_analyst,
     "positioning-analyst": positioning_analyst,

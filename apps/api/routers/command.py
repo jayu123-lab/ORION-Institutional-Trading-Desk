@@ -23,7 +23,10 @@ from core.news import filter_relevant_news
 
 router = APIRouter(prefix="/api/v1/command", tags=["command"])
 
-TICKER_SYMBOLS = ("XAUUSD", "DXY", "US10Y", "VIX", "NQ", "SPX", "BTCUSD", "XRPUSD")
+TICKER_SYMBOLS = (
+    "XAUUSD", "NQ", "EURUSD", "GBPUSD",  # priority watch: gold, Nasdaq, EUR, GBP
+    "DXY", "US10Y", "VIX", "SPX", "BTCUSD", "XRPUSD",
+)
 
 
 @router.get("/ticker")

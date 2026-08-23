@@ -41,6 +41,7 @@ class SecretType:
     GAMMA_API_KEY = "gamma_api_key"  # noqa: S105
     CLOB_TOKEN = "clob_token"  # noqa: S105
     WS_TOKEN = "ws_token"  # noqa: S105
+    FARO_API_KEY = "faro_api_key"  # noqa: S105
     GENERIC = "generic"  # noqa: S105
 
 
@@ -69,6 +70,17 @@ class SecretStoreABC(ABC):
     @abstractmethod
     def status(self) -> dict[str, bool]:
         """Return status dict: configured, authenticated, ws_connected, etc."""
+        pass
+
+    @abstractmethod
+    def get_raw_secret(self, secret_type: str) -> str | None:
+        """Return the actual secret value for outbound calls (never via API).
+
+        This is distinct from `retrieve_secret`, which only ever returns a
+        masked fingerprint for status displays. Only server-side outbound
+        clients (e.g. a provider sending an authenticated request) may call
+        this — it must never be wired to an HTTP response.
+        """
         pass
 
 
@@ -155,6 +167,17 @@ class WindowsCredentialStore(SecretStoreABC):
         except Exception:
             return {"configured": False, "authenticated": False}
 
+    def get_raw_secret(self, secret_type: str) -> str | None:
+        if not self._available:
+            return None
+        try:
+            key = self._cred_key(secret_type)
+            cred = self._cred.get_key_credential(target=key, username="ORION")
+            return cred.password if cred else None
+        except Exception as e:
+            logger.error(f"Failed to retrieve raw secret via Windows Credential Manager: {e}")
+            return None
+
 
 class EnvFallbackSecretStore(SecretStoreABC):
     """ .env fallback secret store.
@@ -197,6 +220,10 @@ class EnvFallbackSecretStore(SecretStoreABC):
                 return {"configured": True, "authenticated": True}
         return {"configured": False, "authenticated": False}
 
+    def get_raw_secret(self, secret_type: str) -> str | None:
+        env_name = f"ORION_{secret_type.upper()}"
+        return os.environ.get(env_name)
+
 
 class SecretStoreFactory:
     """Factory to create the best available secret store in priority order."""
@@ -204,14 +231,21 @@ class SecretStoreFactory:
     @staticmethod
     def create() -> SecretStoreABC:
         """Create the best available secret store in priority order."""
-        # 1. Try Windows Credential Manager
+        # 1. Try Windows Credential Manager — select it whenever the library
+        # itself is available, not only when a secret happens to already be
+        # stored there (checking "already configured" made it impossible to
+        # ever bootstrap the first secret into this store).
         store = WindowsCredentialStore()
-        if store.status().get("configured", False):
+        if store._available:
             logger.info("Using Windows Credential Manager for secret store")
             return store
 
         # 2. Fallback to .env (environment variables only, never write to file)
-        logger.warning("No Windows Credential Manager available, using .env fallback")
+        # NOTE: this store only lives in process memory (os.environ) — a
+        # secret saved here does NOT survive an API restart unless the
+        # `wincred` package is installed so the branch above can be used.
+        logger.warning("No Windows Credential Manager available, using .env fallback "
+                       "(secret will not survive an API restart)")
         return EnvFallbackSecretStore()
 
 

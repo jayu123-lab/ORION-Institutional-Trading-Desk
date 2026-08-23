@@ -27,6 +27,7 @@ METAL_SYMBOLS = {"XAUUSD", "XAGUSD", "GC", "MGC", "SI", "HG"}
 CRYPTO_SYMBOLS = {"BTCUSD", "ETHUSD", "XRPUSD", "SOLUSD"}
 INDEX_SYMBOLS = {"SPX", "NDX", "NASDAQ", "DJI", "DAX", "IBEX", "FTSE", "ES", "NQ"}
 MACRO_SYMBOLS = {"DXY", "US10Y", "US13W", "US02Y", "VIX"}
+FX_SYMBOLS = {"EURUSD", "GBPUSD", "USDJPY"}
 
 INTENTS = (
     "MARKET_ANALYSIS", "TRADE_PLAN", "MACRO", "NEWS", "RISK", "POSITIONING",
@@ -46,6 +47,8 @@ def asset_class_of(symbol: str) -> str:
         return "index"
     if s in MACRO_SYMBOLS:
         return "macro"
+    if s in FX_SYMBOLS:
+        return "fx"
     return "other"
 
 
@@ -74,6 +77,7 @@ _ANALYSTS_FOR_ASSET = {
     "metal": ["metals-analyst"],
     "crypto": ["crypto-analyst"],
     "index": ["equities-analyst"],
+    "fx": ["forex-analyst"],
 }
 _ALWAYS_ON = ["macro-strategist", "liquidity-analyst", "crossasset-analyst",
               "news-intelligence", "quant-architect"]
@@ -131,6 +135,9 @@ class IntentRouter:
                     a_class = "metal"
                 elif any(w in q for w in ("nasdaq", "acciones", "indices", "índices")):
                     a_class = "index"
+                elif any(w in q for w in ("forex", "divisas", "eurusd", "gbpusd",
+                                          "libra", "euro dolar", "euro dólar")):
+                    a_class = "fx"
 
         required_agents = self._agents_for(intent, asset, a_class)
         required_data = self._data_for(intent, asset)

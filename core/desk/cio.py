@@ -24,7 +24,10 @@ from core.memory.models import Analysis, Quote
 
 logger = logging.getLogger("orion.cio")
 
-DEFAULT_ASSET = {"metal": "XAUUSD", "crypto": "BTCUSD", "index": "SPX", "macro": "DXY"}
+DEFAULT_ASSET = {
+    "metal": "XAUUSD", "crypto": "BTCUSD", "index": "SPX", "macro": "DXY",
+    "fx": "EURUSD",
+}
 
 _CONF_ORDER = {"LOW": 0, "MODERATE": 1, "HIGH": 2, "VERY HIGH": 3}
 

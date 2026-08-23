@@ -41,10 +41,16 @@ def not_available(reason: str = "no verified feed configured") -> dict:
 
 GOLD_EXTRA_QUOTES = ("GC", "MGC", "DXY", "US10Y", "VIX")
 XRP_EXTRA_QUOTES = ("BTCUSD",)
+FX_EXTRA_QUOTES = ("DXY", "US10Y", "VIX")
+FX_SYMBOLS = ("EURUSD", "GBPUSD", "USDJPY")
 CRYPTO_NEWS_KEYWORDS = (
     "ripple", "xrpl", "rlusd", "crypto", "bitcoin", "btc", "stablecoin",
 )
 METALS_NEWS_KEYWORDS = ("gold", "oro", "fed", "tariff", "inflation", "cpi", "fomc")
+FX_NEWS_KEYWORDS = (
+    "ecb", "bce", "fed", "boe", "rate decision", "tipos de interes",
+    "tipos de interés", "eur", "gbp", "dollar", "dólar", "libra",
+)
 
 
 class ContextBuilder:
@@ -154,6 +160,10 @@ class ContextBuilder:
         if symbol in ("XAUUSD", "GC", "MGC"):
             ctx["extra_quotes"] = {s: self._quote_tag(s) for s in GOLD_EXTRA_QUOTES}
 
+        # --- FX special mode: DXY/yields/VIX cross-read for the pair
+        if symbol in FX_SYMBOLS:
+            ctx["extra_quotes"] = {s: self._quote_tag(s) for s in FX_EXTRA_QUOTES}
+
         # --- CFTC positioning when a real mapping exists
         cot = await self._cftc_block(symbol)
         if cot is not None:
@@ -174,6 +184,8 @@ class ContextBuilder:
             keywords = CRYPTO_NEWS_KEYWORDS
         elif _class_of(symbol) == "metal":
             keywords = METALS_NEWS_KEYWORDS
+        elif _class_of(symbol) == "fx":
+            keywords = FX_NEWS_KEYWORDS
         ctx["news"] = self._recent_news(keywords)
 
         # --- risk snapshot
@@ -359,6 +371,8 @@ def _pairs_for(symbol: str) -> list[str]:
         return ["US10Y", "DXY", "VIX"]
     if s == "DXY":
         return ["SPX", "XAUUSD"]
+    if s in ("EURUSD", "GBPUSD", "USDJPY"):
+        return ["DXY", "US10Y"]
     return []
 
 

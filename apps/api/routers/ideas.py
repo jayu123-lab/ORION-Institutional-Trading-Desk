@@ -164,6 +164,30 @@ def risk_review(idea_id: int, session: Session = Depends(get_db)) -> dict:
         detail={"decision": decision.decision, "reasons": decision.reasons},
     )
     session.commit()
+
+    # Faro publish: only on a full, unreduced APPROVED — never on
+    # REDUCE_SIZE/WAIT/REJECTED, keeping the human-approval spirit of the
+    # IDEA -> CIO -> RISK -> EXECUTION flow for anything sent outward.
+    faro_result = None
+    if decision.decision == "APPROVED":
+        from providers.faro.client import maybe_send_faro_signal
+
+        try:
+            sent = maybe_send_faro_signal(idea, decision.decision)
+            if sent is not None:
+                faro_result = sent.to_dict()
+                audit(
+                    session,
+                    actor="faro-publisher",
+                    action="faro_signal",
+                    entity="trade_ideas",
+                    entity_id=idea.id,
+                    detail={"status": sent.status, "detail": sent.detail},
+                )
+                session.commit()
+        except Exception as exc:  # noqa: BLE001 — publishing must never break risk-review
+            faro_result = {"status": "FAILED", "detail": str(exc)[:300]}
+
     return {
         "idea_id": idea.id,
         "decision": decision.decision,
@@ -171,4 +195,5 @@ def risk_review(idea_id: int, session: Session = Depends(get_db)) -> dict:
         "conditions": decision.conditions,
         "suggested_qty": decision.suggested_qty,
         "computed_risk_pct": decision.computed_risk_pct,
+        "faro": faro_result,
     }

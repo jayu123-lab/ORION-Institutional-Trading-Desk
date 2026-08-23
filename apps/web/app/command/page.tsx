@@ -36,6 +36,11 @@ type Intelligence = {
   risk_warnings: { message: string; severity: string }[];
   cio_decision: { asset: string | null; stance: string | null; summary: string | null };
 };
+type FaroStatus = {
+  configured: boolean;
+  endpoint_configured: boolean;
+  last_signal: { status: string; detail: string; ts: string } | null;
+};
 type AgentRow = {
   agent_id: string;
   name: string;
@@ -55,13 +60,14 @@ type Opportunity = {
 };
 
 const WHEEL_AGENTS = [
-  "MACRO", "METALS", "CRYPTO", "EQUITIES", "LIQUIDITY",
+  "MACRO", "METALS", "FOREX", "CRYPTO", "EQUITIES", "LIQUIDITY",
   "POSITIONING", "CROSS-ASSET", "NEWS", "QUANT", "RISK", "AUDIT",
 ];
 
 const AGENT_NODE_MAP: Record<string, string> = {
   "macro-strategist": "MACRO",
   "metals-analyst": "METALS",
+  "forex-analyst": "FOREX",
   "crypto-analyst": "CRYPTO",
   "equities-analyst": "EQUITIES",
   "liquidity-analyst": "LIQUIDITY",
@@ -77,6 +83,7 @@ const QUICK_ACTIONS: { key: string; message: string }[] = [
   { key: "analyze_gold", message: "Analiza XAUUSD" },
   { key: "analyze_xrp", message: "Analiza XRP" },
   { key: "analyze_nasdaq", message: "Analiza NASDAQ" },
+  { key: "analyze_forex", message: "Analiza EURUSD" },
   { key: "pre_london", message: "Dame el Pre-Londres" },
   { key: "pre_ny", message: "Dame el Pre-NY" },
   { key: "convene_desk", message: "Convoca la mesa para XAUUSD" },
@@ -94,6 +101,7 @@ export default function CommandCenter() {
   const [intel, setIntel] = useState<Intelligence | null>(null);
   const [radar, setRadar] = useState<Opportunity[]>([]);
   const [agents, setAgents] = useState<AgentRow[]>([]);
+  const [faro, setFaro] = useState<FaroStatus | null>(null);
   const [systemOverall, setSystemOverall] = useState<string>("…");
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -208,19 +216,27 @@ export default function CommandCenter() {
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => d && setRadar(d.opportunities ?? []))
         .catch(() => undefined);
+    const loadFaro = () =>
+      fetch(`${API_URL}/api/v1/settings/connections/faro/status`, { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => d?.faro && setFaro(d.faro))
+        .catch(() => undefined);
     loadTicker();
     loadIntel();
     loadAgents();
     loadRadar();
+    loadFaro();
     const tickT = setInterval(loadTicker, 60_000);
     const tickI = setInterval(loadIntel, 30_000);
     const tickA = setInterval(loadAgents, 30_000);
     const tickR = setInterval(loadRadar, 5_000);
+    const tickF = setInterval(loadFaro, 30_000);
     return () => {
       clearInterval(tickT);
       clearInterval(tickI);
       clearInterval(tickA);
       clearInterval(tickR);
+      clearInterval(tickF);
     };
   }, [booted, t]);
 
@@ -348,7 +364,10 @@ export default function CommandCenter() {
       <div className="panel px-2 py-1 overflow-x-auto">
         <div className="flex gap-4 text-[11px] whitespace-nowrap">
           {(ticker.length ? ticker : FALLBACK_TICKER).map((row) => (
-            <span key={row.symbol} className="inline-flex items-baseline gap-1.5">
+            <span key={row.symbol} className={`inline-flex items-baseline gap-1.5 ${
+              PRIORITY_SYMBOLS.has(row.symbol) ? "orion-priority-symbol" : ""
+            }`}>
+              {PRIORITY_SYMBOLS.has(row.symbol) && <span className="text-[#38bdf8] orion-pulse">◆</span>}
               <span className="text-[#9db2d0] tracking-wide">{row.symbol.replace("USD", "")}</span>
               <span>{row.price != null ? fmtPrice(row.price) : "N/A"}</span>
               {row.change_pct != null && (
@@ -398,6 +417,7 @@ export default function CommandCenter() {
         {/* center: CIO wheel */}
         <section className="col-span-12 lg:col-span-6 xl:col-span-7 panel relative min-h-[380px] overflow-hidden">
           <div className="panel-title">ORION CIO — NÚCLEO MULTIAGENTE</div>
+          <div className="orion-wheel-glow" />
           <CioWheel agents={WHEEL_AGENTS} active={activeAgents} thinking={sending} />
         </section>
 
@@ -431,6 +451,26 @@ export default function CommandCenter() {
                 {intel.cio_decision.summary
                   ? <p>▸ {intel.cio_decision.asset}: {intel.cio_decision.stance} — {intel.cio_decision.summary}</p>
                   : <p className="muted">no CIO runs yet</p>}
+              </IntelBlock>
+              <IntelBlock title="FARO">
+                {!faro && <p className="muted">loading…</p>}
+                {faro && !faro.configured && (
+                  <p className="muted">not configured — <a href="/settings" className="text-[#38bdf8] hover:underline">Settings &gt; Faro</a></p>
+                )}
+                {faro && faro.configured && !faro.last_signal && (
+                  <p className="muted">configured · no signals sent yet</p>
+                )}
+                {faro && faro.configured && faro.last_signal && (
+                  <p>
+                    <span className={
+                      faro.last_signal.status === "SENT" ? "text-[#22c55e]"
+                        : faro.last_signal.status === "FAILED" ? "text-[#ef4444]"
+                          : "text-[#38bdf8]"
+                    }>{faro.last_signal.status}</span>{" "}
+                    {!faro.endpoint_configured && <span className="muted">(demo — sin endpoint)</span>}{" "}
+                    {faro.last_signal.detail}
+                  </p>
+                )}
               </IntelBlock>
             </>
           )}
@@ -541,8 +581,11 @@ function Dot({ ok }: { ok: boolean }) {
   return <span className={ok ? "text-[#22c55e]" : "text-[#f59e0b]"}>●</span>;
 }
 
-const FALLBACK_TICKER: TickerRow[] = ["XAUUSD", "DXY", "US10Y", "VIX", "NQ", "SPX", "BTCUSD", "XRPUSD"]
-  .map((s) => ({ symbol: s, price: null, change_pct: null, status: "…" }));
+const FALLBACK_TICKER: TickerRow[] = [
+  "XAUUSD", "NQ", "EURUSD", "GBPUSD", "DXY", "US10Y", "VIX", "SPX", "BTCUSD", "XRPUSD",
+].map((s) => ({ symbol: s, price: null, change_pct: null, status: "…" }));
+
+const PRIORITY_SYMBOLS = new Set(["XAUUSD", "NQ", "EURUSD", "GBPUSD"]);
 
 function fmtPrice(p: number): string {
   if (p >= 1000) return p.toLocaleString("en-US", { maximumFractionDigits: 2 });
@@ -645,30 +688,85 @@ function CioWheel({ agents, active, thinking }: { agents: string[]; active: Set<
     const angle = (i / agents.length) * Math.PI * 2 - Math.PI / 2;
     return { name, x: cx + rx * Math.cos(angle), y: cy + ry * Math.sin(angle) };
   });
+  // A handful of static ambient dots for texture — no per-frame JS, just staggered CSS delays.
+  const dust = [
+    { x: 18, y: 14, r: 0.35, d: "0s" }, { x: 82, y: 18, r: 0.3, d: "0.6s" },
+    { x: 12, y: 46, r: 0.28, d: "1.1s" }, { x: 88, y: 44, r: 0.32, d: "1.8s" },
+    { x: 24, y: 8, r: 0.25, d: "2.3s" }, { x: 76, y: 55, r: 0.3, d: "0.3s" },
+    { x: 8, y: 30, r: 0.22, d: "1.5s" }, { x: 92, y: 30, r: 0.26, d: "2.6s" },
+  ];
   return (
-    <svg viewBox="0 0 100 62" className="w-full h-[calc(100%-28px)]" preserveAspectRatio="xMidYMid meet">
+    <svg viewBox="0 0 100 62" className="w-full h-[calc(100%-28px)] relative" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <filter id="orion-glow-soft" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="1.4" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <filter id="orion-glow-strong" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="2.6" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <radialGradient id="orion-core-grad" cx="50%" cy="45%" r="60%">
+          <stop offset="0%" stopColor="#3a1014" />
+          <stop offset="100%" stopColor="#10161f" />
+        </radialGradient>
+      </defs>
+
+      {/* ambient dust, decorative only */}
+      <g className="orion-dust" opacity={0.6}>
+        {dust.map((d, i) => (
+          <circle key={i} cx={d.x} cy={d.y} r={d.r} fill="#38bdf8" style={{ animationDelay: d.d }} />
+        ))}
+      </g>
+
+      {/* connection lines: soft base + animated energy flow when active */}
       {pos.map((p) => (
-        <line key={`ln-${p.name}`} x1={cx} y1={cy * 0.98} x2={p.x} y2={p.y * 0.98}
-          stroke={active.has(p.name) ? "#38bdf8aa" : "#1e2936"}
-          strokeWidth={active.has(p.name) ? 0.45 : 0.25} />
+        <g key={`ln-${p.name}`}>
+          <line x1={cx} y1={cy * 0.98} x2={p.x} y2={p.y * 0.98}
+            stroke={active.has(p.name) ? "#38bdf8" : "#1e2936"}
+            strokeWidth={active.has(p.name) ? 0.5 : 0.22}
+            opacity={active.has(p.name) ? 0.55 : 1}
+            filter={active.has(p.name) ? "url(#orion-glow-soft)" : undefined} />
+          {active.has(p.name) && (
+            <line x1={cx} y1={cy * 0.98} x2={p.x} y2={p.y * 0.98}
+              stroke="#7dd3fc" strokeWidth={0.35} className="orion-flow-active" />
+          )}
+        </g>
       ))}
-      {/* orbit rings */}
-      <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="none" stroke="#16202e" strokeWidth={0.3} strokeDasharray="1.5 1.5" />
-      <ellipse cx={cx} cy={cy} rx={rx * 0.72} ry={ry * 0.72} fill="none" stroke="#16202e" strokeWidth={0.3} />
-      {/* central node */}
-      <circle cx={cx} cy={cy} r={7.2} fill="#10161f" stroke="#ef4444" strokeWidth={0.5}
-        className={thinking ? "orion-pulse" : ""} />
+
+      {/* orbit rings — slow independent rotation, pure CSS transform */}
+      <ellipse className="orion-orbit-ring" cx={cx} cy={cy} rx={rx} ry={ry} fill="none"
+        stroke="#16202e" strokeWidth={0.3} strokeDasharray="1.5 1.5" />
+      <ellipse className="orion-orbit-ring-reverse" cx={cx} cy={cy} rx={rx * 0.72} ry={ry * 0.72}
+        fill="none" stroke="#1a2636" strokeWidth={0.3} strokeDasharray="0.6 1.4" />
+
+      {/* central node — layered glow, bioluminescent core */}
+      <circle cx={cx} cy={cy} r={11} fill="#ef4444" opacity={thinking ? 0.16 : 0.08}
+        filter="url(#orion-glow-strong)" className={thinking ? "orion-pulse" : undefined} />
+      <circle cx={cx} cy={cy} r={7.2} fill="url(#orion-core-grad)" stroke="#ef4444" strokeWidth={0.5}
+        filter="url(#orion-glow-soft)" className={thinking ? "orion-pulse" : ""} />
       <text x={cx} y={cy - 0.4} textAnchor="middle" fontSize={2.6} fill="#ffffff" fontWeight={700} letterSpacing={0.35}>
         ORION
       </text>
       <text x={cx} y={cy + 2.6} textAnchor="middle" fontSize={1.9} fill={thinking ? "#38bdf8" : "#71809a"}>
         {thinking ? "THINKING" : "CIO"}
       </text>
+
       {/* agent nodes */}
       {pos.map((p) => (
         <g key={p.name} className={active.has(p.name) ? "orion-node-active" : undefined}>
+          {active.has(p.name) && (
+            <circle cx={p.x} cy={p.y} r={5.2} fill="#22c55e" opacity={0.18} filter="url(#orion-glow-soft)" />
+          )}
           <circle cx={p.x} cy={p.y} r={3.4} fill="#141c28"
-            stroke={active.has(p.name) ? "#22c55e" : "#2a3a52"} strokeWidth={0.35} />
+            stroke={active.has(p.name) ? "#22c55e" : "#2a3a52"} strokeWidth={0.35}
+            filter={active.has(p.name) ? "url(#orion-glow-soft)" : undefined} />
           <text x={p.x} y={p.y + 1} textAnchor="middle" fontSize={1.75}
             fill={active.has(p.name) ? "#22c55e" : "#9db2d0"}>
             {p.name.length > 8 ? p.name.slice(0, 7) + "." : p.name}

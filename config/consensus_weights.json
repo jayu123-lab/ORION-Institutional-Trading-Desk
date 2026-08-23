@@ -18,5 +18,9 @@
   "index": {
     "macro": 0.25, "technical": 0.20, "liquidity": 0.15,
     "order_flow": 0.15, "news": 0.10, "quant": 0.15
+  },
+  "fx": {
+    "macro": 0.30, "technical": 0.20, "liquidity": 0.20,
+    "order_flow": 0.15, "news": 0.10, "quant": 0.05
   }
 }

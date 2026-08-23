@@ -102,6 +102,8 @@ _DEFAULT_SPECS: list[AgentSpec] = [
           ["spot quotes", "BTC correlation", "relative strength"], ["crypto"]),
     _spec("equities-analyst", "Equities Analyst", "Indices & megacaps",
           ["SPX", "NASDAQ", "NQ", "ES"], ["index", "stock"]),
+    _spec("forex-analyst", "Forex Analyst", "Majors FX vs USD (EUR, GBP, JPY)",
+          ["EURUSD", "GBPUSD", "USDJPY", "DXY cross-read"], ["fx"]),
     _spec("liquidity-analyst", "Liquidity Analyst", "Honest derived liquidity",
           ["swing highs/lows", "range extremes", "ATR extension", "relative volume"],
           ["all"]),

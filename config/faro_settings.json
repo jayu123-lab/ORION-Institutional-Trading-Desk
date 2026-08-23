@@ -1,0 +1,6 @@
+{
+  "endpoint_url": "",
+  "auto_send": true,
+  "min_message_length": 200,
+  "_comment": "Non-secret Faro settings, editable from Settings > Faro. The API key itself is never stored here — it lives in the secret store (core/security). endpoint_url stays empty until the real Faro API is known; until then, approved signals are composed and logged locally (DEMO_LOGGED), never actually sent."
+}

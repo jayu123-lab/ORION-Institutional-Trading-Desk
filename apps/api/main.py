@@ -30,6 +30,7 @@ from .routers import (
     market,
     orders,
     scanner,
+    settings as settings_router,
     system,
 )
 
@@ -143,6 +144,7 @@ for router_module in (
     orders,
     analytics,
     scanner,
+    settings_router,
 ):
     app.include_router(router_module.router)
 app.include_router(tv_router)

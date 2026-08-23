@@ -9,12 +9,13 @@ import { LANGUAGES, LangCode, useLanguage } from "@/lib/i18n";
 const NAV = [
   ["home", "/start"], ["command_center", "/command"], ["market", "/"],
   ["gold", "/gold"], ["crypto", "/crypto"], ["positioning", "/positioning"],
-  ["agents", "/agents"], ["system", "/status"],
+  ["agents", "/agents"], ["system", "/status"], ["settings", "/settings"],
 ] as const;
 
 const BREADCRUMBS: Record<string, string> = {
   "/start": "home", "/command": "command_center", "/": "market", "/gold": "gold",
   "/crypto": "crypto", "/positioning": "positioning", "/agents": "agents", "/status": "system",
+  "/settings": "settings",
 };
 
 type ChatReply = { cio?: { reply?: string } };
