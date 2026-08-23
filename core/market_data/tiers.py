@@ -60,6 +60,8 @@ def load_tiers(path: str | None = None) -> dict[str, tuple[FeedTier, FeedGrade]]
         except (OSError, json.JSONDecodeError):
             continue
         for name, pair in data.items():
+            if name not in DEFAULT_TIERS:
+                continue  # providers must be registered in code before tiering
             try:
                 tiers[name] = (FeedTier(pair[0]), FeedGrade(pair[1]))
             except (ValueError, KeyError, IndexError):

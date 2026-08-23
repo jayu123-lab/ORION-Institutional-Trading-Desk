@@ -45,7 +45,10 @@ class TestConfigLoad:
 
     def test_invalid_entries_ignored(self, tmp_path):
         cfg = tmp_path / "tiers.json"
-        cfg.write_text('{"unknown-provider": ["PRIMARY_FEED", "LIVE"], "yahoo": ["BAD", "BAD"]}', encoding="utf-8")
+        cfg.write_text(
+            '{"unknown-provider": ["PRIMARY_FEED", "LIVE"], "yahoo": ["BAD", "BAD"]}',
+            encoding="utf-8",
+        )
         tiers = load_tiers(str(cfg))
         assert "unknown-provider" not in tiers
         assert tiers["yahoo"] == DEFAULT_TIERS["yahoo"]  # invalid entry → default kept
