@@ -319,11 +319,11 @@ export default function CommandCenter() {
 
       {/* ===== status chips ===== */}
       <div className="panel px-3 py-1.5 grid grid-cols-3 md:grid-cols-6 gap-x-4 gap-y-1 text-[10px]">
-        <Chip label="SESSION" value={sessionLabel} tone="blue" />
-        <Chip label="REGIME" value={regimeOf(lastCio)} />
-        <Chip label="BIAS SCORE" value={biasTotal != null ? `${biasTotal} · ${biasBand}` : "—"} tone="blue" />
-        <Chip label="TRADE QUALITY" value={tqTotal != null ? String(tqTotal) : "—"} tone="amber" />
-        <Chip label="DECISION" value={decision} tone={decision === "TRADE" ? "green" : decision === "NO_TRADE" ? "red" : "amber"} />
+        <Chip label={t("session")} value={sessionLabel} tone="blue" />
+        <Chip label={t("regime")} value={regimeOf(lastCio)} />
+        <Chip label={t("bias_score")} value={biasTotal != null ? `${biasTotal} · ${biasBand}` : "—"} tone="blue" />
+        <Chip label={t("trade_quality")} value={tqTotal != null ? String(tqTotal) : "—"} tone="amber" />
+        <Chip label={t("decision")} value={decision} tone={decision === "TRADE" ? "green" : decision === "NO_TRADE" ? "red" : "amber"} />
         <Chip label="CIO" value={cioStatus} tone={cioStatus === "DATA DEGRADED" || cioStatus === "RISK BLOCKED" ? "amber" : "green"} />
       </div>
 
@@ -351,7 +351,7 @@ export default function CommandCenter() {
       <div className="grid grid-cols-12 gap-2 flex-1 min-h-0">
         {/* left: timeline + quick actions */}
         <aside className="col-span-3 xl:col-span-2 panel p-2 hidden lg:flex flex-col gap-2 min-h-0">
-          <div className="panel-title !px-0 !pt-0">TIMELINE</div>
+          <div className="panel-title !px-0 !pt-0">{t("timeline")}</div>
           <Timeline activity={lastCio?.activity ?? []} />
           <div className="mt-auto pt-2 flex flex-col gap-1.5">
             {QUICK_ACTIONS.map((a) => (
@@ -370,7 +370,7 @@ export default function CommandCenter() {
 
         {/* center: CIO wheel */}
         <section className="col-span-12 lg:col-span-6 xl:col-span-7 panel relative min-h-[380px] overflow-hidden">
-          <div className="panel-title">ORION CIO — MULTI-AGENT CORE</div>
+          <div className="panel-title">ORION CIO — NÚCLEO MULTIAGENTE</div>
           <CioWheel agents={WHEEL_AGENTS} active={activeAgents} thinking={sending} />
         </section>
 
@@ -380,27 +380,27 @@ export default function CommandCenter() {
           {!intel && <p className="text-[10px] text-[#71809a]">waiting for feed…</p>}
           {intel && (
             <>
-              <IntelBlock title="MACRO FLAG">
+              <IntelBlock title={t("macro_flag")}>
                 {intel.macro_flag ? (
                   <p>▸ [{intel.macro_flag.source}] {intel.macro_flag.title}</p>
                 ) : <p className="muted">NOT AVAILABLE</p>}
               </IntelBlock>
-              <IntelBlock title="NEWS">
+              <IntelBlock title={t("news")}>
                 {intel.latest_news.slice(0, 3).map((n, i) => (
                   <p key={i}>[{n.relevance ?? "?"}] {n.title}</p>
                 ))}
               </IntelBlock>
-              <IntelBlock title="LIQUIDITY EVENT">
+              <IntelBlock title={t("liquidity_event")}>
                 {intel.liquidity_event?.event
                   ? <p>▸ {intel.liquidity_event.asset}: {intel.liquidity_event.event}</p>
                   : <p className="muted">none mapped</p>}
               </IntelBlock>
-              <IntelBlock title="RISK WARNING">
+              <IntelBlock title={t("risk_warning")}>
                 {intel.risk_warnings.length > 0
                   ? intel.risk_warnings.map((w, i) => <p key={i}>⚠ {w.message}</p>)
                   : <p className="muted">none open</p>}
               </IntelBlock>
-              <IntelBlock title="LAST CIO DECISION">
+              <IntelBlock title={t("last_cio_decision")}>
                 {intel.cio_decision.summary
                   ? <p>▸ {intel.cio_decision.asset}: {intel.cio_decision.stance} — {intel.cio_decision.summary}</p>
                   : <p className="muted">no CIO runs yet</p>}
@@ -464,7 +464,7 @@ export default function CommandCenter() {
         </section>
 
         <section className="col-span-4 lg:col-span-5 panel p-2 overflow-y-auto min-h-0">
-          <div className="panel-title !px-0 !pt-0">{t("agent_activity")}</div>
+           <div className="panel-title !px-0 !pt-0">{t("agent_activity")}</div>
           <table className="w-full text-[10px]">
             <tbody>
               {agents.slice(0, 15).map((a) => (
@@ -478,7 +478,7 @@ export default function CommandCenter() {
               ))}
             </tbody>
           </table>
-          <div className="panel-title !px-0 mt-2">SYSTEM</div>
+           <div className="panel-title !px-0 mt-2">{t("system")}</div>
           <p className="text-[10px] text-[#9db2d0]">
             API <Dot ok={systemOverall === "OPERATIONAL"} /> · DB{" "}
             <Dot ok /> · OVERALL <span className={
