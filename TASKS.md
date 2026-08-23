@@ -42,7 +42,7 @@ Convención: `[P#]` fase, `[agent]` responsable sugerido. Marcar `[x]` al cerrar
       gamma/options-OI/ETF-flows/CTA declarados NOT AVAILABLE, nunca fabricados
 - [x] [P4][core] CrossAssetEngine — correlaciones baseline/reciente, DIVERGENCE/
       REGIME CHANGE/ABNORMAL, régimen de riesgo SPX/VIX/BTC
-- [x] [P6][core] Market Brain composite (momentum/liquidity/macro/risco/data-quality)
+- [x] [P6][core] Market Brain composite (momentum/liquidity/macro/risk/data-quality)
 - [x] [P7][core] DeskDebateEngine 7 analistas deterministas + CIO synthesis + audit
 - [x] [P1b][core] AuditVerifier — verificación de fuentes/coherencia numérica en análisis
 - [x] [P8][core] OrionSignal schema + validación geométrica/R:R (formato señal §1)
@@ -70,7 +70,9 @@ Convención: `[P#]` fase, `[agent]` responsable sugerido. Marcar `[x]` al cerrar
 - [x] [P4][web] Pantallas GOLD/CRYPTO/EQUITIES/POLYMARKET/POSITIONING/CROSS-ASSET/
       BACKTEST (datos faltantes mostrados como NOT AVAILABLE, nunca estimados)
 - [x] [P11][api] Router analytics: /positioning/{sym} · /cross_asset/scan ·
-      /market_brain/{scope} exponiendo engines ya testeadaos
+      /market_brain/{scope} exponiendo engines ya testeados
+- [x] [P15][api] Health por servicio en /system/status (HEALTHY/DEGRADED/STALE/
+      FAILED desde evidencia en DB) + panel Services Health en /status web
 
 ## Calidad
 
@@ -79,3 +81,10 @@ Convención: `[P#]` fase, `[agent]` responsable sugerido. Marcar `[x]` al cerrar
 - [x] [P2][qa] Cobertura ≥80% en core/risk + core/execution + core/market_brain
       (TOTAL 93% con pytest-cov)
 - [x] [P3][qa] Property-based tests (hypothesis): sizing/fills/risk/reconciliación
+
+## Docs
+
+- [x] [P13][docs] docs/BROKER_MATRIX.md — investigación oficial OANDA/Alpaca/
+      IBKR/MT5/VT Markets + reglas de integración paper-first
+- [x] [P16][docs] CHANGELOG.md (0.2.0) · ARCHITECTURE.md §10 (capa inteligencia)
+      · ROADMAP.md sincronizado con entrega P1–P16

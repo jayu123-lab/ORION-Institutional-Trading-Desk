@@ -120,3 +120,37 @@ Estados definidos en `core/execution/models.py::OrderState` (exclusivamente los 
   execution-trader; pasar siempre por `submit_order()` con humano en el circuito.
 - **Nueva estrategia**: objeto en `strategies/` con `generate(candles, regime)` +
   registro en tabla `strategies`; backtest vía `backtests/engine.py`.
+
+## 10. Capa de inteligencia institucional (entrega 0.2.0)
+
+Módulos añadidos sobre la base existente (todos con tests):
+
+- **Procedencia y calidad**: `core/provenance.py` (estados VERIFIED/DERIVED/
+  NOT AVAILABLE), `core/market_data/reconciliation.py` (comparación multi-feed,
+  eventos FEED_DIVERGENCE/DATA_STALE), `core/market_data/tiers.py`
+  (PRIMARY/SECONDARY/FALLBACK + grades LIVE/DELAYED/UNOFFICIAL/SIMULATED;
+  configurable en `config/feed_tiers.json`).
+- **Candles derivadas**: `core/memory/candles.py` agrega quotes→OHLC M15/H1/H4
+  (provider=`derived-quotes`, status=DERIVED, upsert idempotente); el monitor
+  ejecuta el rollup cada ~5 min.
+- **Régimen**: `core/regime.py` v2 multi-factor determinista (ATR%, vol
+  realizada, ADX Wilder, Kaufman ER, persistencia, expansión de rango).
+- **Market Brain**: `core/market_brain/` composite momentum/liquidity/macro/
+  risk/data-quality con provenance por componente.
+- **Cross-asset**: `core/cross_asset/engine.py` correlaciones baseline vs
+  reciente (DIVERGENCE / REGIME CHANGE / ABNORMAL_RELATIONSHIP) y régimen de
+  riesgo SPX/VIX/BTC.
+- **Positioning**: `providers/positioning/cftc.py` (COT oficial vía Socrata)
+  + `core/positioning/agent.py`; fuentes sin API pública se reportan
+  NOT AVAILABLE.
+- **Debate**: `core/debate/engine.py` convoca analistas deterministas,
+  registra opiniones y síntesis CIO en analyses/agent_opinions.
+- **Señales**: `core/signals/format.py` valida el formato completo de señal
+  (entrada/invalidación/SL/TP/R:R/probabilidad/condiciones) antes de publicar.
+- **Auditoría**: `core/audit/verifier.py` comprueba frescura de fuentes y
+  coherencia numérica de análisis/opiniones.
+- **Infra**: `RedisEventBus` opcional (`build_event_bus`, fallback InMemory),
+  router analytics (`/positioning`, `/cross_asset/scan`, `/market_brain`) y
+  health por servicio en `/system/status`.
+- **Brokers**: matriz de decisión e investigación oficial en
+  `docs/BROKER_MATRIX.md`; adapters pendientes (Phase 5).
