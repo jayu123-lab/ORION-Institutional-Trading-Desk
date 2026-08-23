@@ -43,10 +43,10 @@ def test_empty_db_reports_failed_services(session):
 
 
 def test_rtds_disabled_reports_not_configured(session):
-    """RTDS off in config → NOT_CONFIGURED, never a fake FAILED."""
+    """RTDS off in config → DISABLED, never a fake STALE/FAILED."""
     now = datetime.now(UTC)
     states = {s["service"]: s["state"] for s in _service_states(session, now)}
-    assert states["monitor.polymarket_rtds"] == "NOT_CONFIGURED"
+    assert states["monitor.polymarket_rtds"] == "DISABLED"
 
 
 @pytest.mark.usefixtures("rtds_enabled")
@@ -61,8 +61,7 @@ def test_fresh_quotes_are_healthy(session):
     now = datetime.now(UTC)
     for provider in ("yahoo", "polymarket-rtds"):
         session.add(
-            Quote(symbol="XAUUSD", provider=provider, price=1.0,
-                  ts_source=now, ts_received=now)
+            Quote(symbol="XAUUSD", provider=provider, price=1.0, ts_source=now, ts_received=now)
         )
     session.commit()
     states = {s["service"]: s["state"] for s in _service_states(session, now)}
@@ -73,9 +72,18 @@ def test_fresh_quotes_are_healthy(session):
 def test_stale_and_fresh_news_candle_mix(session):
     now = datetime.now(UTC)
     session.add(NewsItem(title="t", source="s", published_at=now - timedelta(hours=10)))
-    session.add(Candle(symbol="XAUUSD", timeframe="H1", provider="derived-quotes",
-                       open=1, high=1, low=1, close=1,
-                       ts_open=now - timedelta(hours=3)))
+    session.add(
+        Candle(
+            symbol="XAUUSD",
+            timeframe="H1",
+            provider="derived-quotes",
+            open=1,
+            high=1,
+            low=1,
+            close=1,
+            ts_open=now - timedelta(hours=3),
+        )
+    )
     session.commit()
     report = {s["service"]: s for s in _service_states(session, now)}
     assert report["news.rss_cycle"]["state"] == "DEGRADED"  # 10h old: healthy≤6h, degraded≤24h

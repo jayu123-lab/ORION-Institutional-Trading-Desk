@@ -367,6 +367,21 @@ class OpportunityCandidate(Base):
     ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
 
 
+class OpportunityTransition(Base):
+    """Append-only candidate state history, separate from the active radar row."""
+
+    __tablename__ = "opportunity_transitions"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    setup_id: Mapped[str] = mapped_column(String(128), index=True)
+    symbol: Mapped[str] = mapped_column(String(24), index=True)
+    setup: Mapped[str] = mapped_column(String(64))
+    previous_state: Mapped[str | None] = mapped_column(String(24))
+    new_state: Mapped[str] = mapped_column(String(24))
+    score: Mapped[float] = mapped_column(Float)
+    reason: Mapped[str] = mapped_column(Text)
+    ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
 class SetupStatistics(Base):
     """Historical setup statistics, kept separate from live opportunity scores."""
 

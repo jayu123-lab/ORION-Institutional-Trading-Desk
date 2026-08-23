@@ -40,6 +40,7 @@ class Settings(BaseSettings):
 
     # ORION UI language (P20): es default; es|en|fr|de|it|pt
     orion_ui_language: str = "es"
+    orion_notification_test_mode: bool = False
 
     # Multi-asset feeds (see docs/DATA_SOURCES.md)
     orion_yahoo_enabled: bool = True  # indices/commodities/stocks/FX/rates (unofficial API)

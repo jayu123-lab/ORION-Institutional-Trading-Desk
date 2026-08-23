@@ -82,7 +82,7 @@ def _service_states(session: Session, now: datetime) -> list[dict]:
         out.append(
             {
                 "service": "monitor.polymarket_rtds",
-                "state": "NOT_CONFIGURED",
+                "state": "DISABLED",
                 "detail": "embedded RTDS monitor disabled (ORION_POLYMARKET_WS_EMBEDDED=false)",
             }
         )
@@ -98,9 +98,7 @@ def _service_states(session: Session, now: datetime) -> list[dict]:
 
     # Embedded data service = ingestion activity from ANY provider. This reflects
     # the lifespan task that populates the dashboard when the monitor is not running.
-    last_any = session.execute(
-        select(func.max(Quote.ts_received))
-    ).scalar_one_or_none()
+    last_any = session.execute(select(func.max(Quote.ts_received))).scalar_one_or_none()
     age = _age_sec(last_any, now)
     out.append(
         {
@@ -112,19 +110,18 @@ def _service_states(session: Session, now: datetime) -> list[dict]:
         }
     )
 
-    # CFTC COT: public Socrata provider invoked on demand by /positioning/{symbol}.
-    # No scheduled ingestion → report truthfully instead of guessing a state.
+    cftc_source = session.execute(
+        select(Source).where(Source.name == "cftc-scheduled")
+    ).scalar_one_or_none()
     out.append(
         {
             "service": "data.cftc",
-            "state": "NOT_CONFIGURED",
-            "detail": "on-demand Socrata provider (weekly COT); no scheduled ingest",
+            "state": cftc_source.status if cftc_source else "NOT_CONFIGURED",
+            "detail": cftc_source.notes if cftc_source else "weekly scheduler has not completed",
         }
     )
 
-    last_news = session.execute(
-        select(func.max(NewsItem.published_at))
-    ).scalar_one_or_none()
+    last_news = session.execute(select(func.max(NewsItem.published_at))).scalar_one_or_none()
     age = _age_sec(last_news, now)
     out.append(
         {

@@ -27,6 +27,7 @@ logger = logging.getLogger("orion.monitor")
 
 NEWS_INTERVAL_TICKS = 20  # heartbeat ~30s → news cycle cada ~10 min
 CANDLE_INTERVAL_TICKS = 10  # heartbeat ~30s → rollup cada ~5 min
+CFTC_INTERVAL_TICKS = 20160  # weekly at the default 30-second heartbeat
 
 
 class FeedHealth:
@@ -76,6 +77,7 @@ class OrionMonitor:
             [p.name for p in self.providers],
         )
         await self._news_cycle()  # primer ciclo inmediato al arrancar
+        await self._cftc_cycle()
         self._rollup_candles()
         while not self._stop.is_set():
             try:
@@ -84,6 +86,8 @@ class OrionMonitor:
                     await self._news_cycle()
                 if self._tick_count % CANDLE_INTERVAL_TICKS == 0:
                     self._rollup_candles()
+                if self._tick_count % CFTC_INTERVAL_TICKS == 0:
+                    await self._cftc_cycle()
             except Exception:  # noqa: BLE001 - monitor must survive any tick failure
                 logger.exception("tick failed")
             await asyncio.sleep(settings.monitor_heartbeat_seconds)
@@ -113,6 +117,43 @@ class OrionMonitor:
                 logger.info("news cycle: %s new headlines", inserted)
         except Exception:  # noqa: BLE001 - news must never kill the monitor
             logger.exception("news cycle failed")
+
+    async def _cftc_cycle(self) -> None:
+        """Refresh official weekly COT at weekly cadence, never per market tick."""
+        import json
+
+        import httpx
+
+        from providers.positioning.cftc import fetch_cot
+
+        reports = []
+        try:
+            async with httpx.AsyncClient(timeout=20) as client:
+                for symbol in ("XAUUSD", "MGC", "BTCUSD"):
+                    record = await fetch_cot(symbol, client)
+                    if record is not None:
+                        reports.append({"symbol": symbol, "report_date": record.report_date})
+            now = utcnow()
+            next_refresh = now + timedelta(days=7)
+            notes = json.dumps(
+                {
+                    "last_successful_ingest": now.isoformat(),
+                    "last_reports": reports,
+                    "next_scheduled_refresh": next_refresh.isoformat(),
+                }
+            )
+            with self.session_factory() as session:
+                source = session.query(Source).filter(Source.name == "cftc-scheduled").one_or_none()
+                if source is None:
+                    source = Source(
+                        name="cftc-scheduled", kind="OFFICIAL_WEEKLY", status="HEALTHY", notes=notes
+                    )
+                    session.add(source)
+                else:
+                    source.status, source.notes, source.updated_at = "HEALTHY", notes, now
+                session.commit()
+        except Exception:
+            logger.exception("CFTC weekly refresh failed")
 
     async def tick(self) -> None:
         self._tick_count += 1

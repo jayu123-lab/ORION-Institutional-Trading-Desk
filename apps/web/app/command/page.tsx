@@ -45,7 +45,14 @@ type AgentRow = {
   last_run: string | null;
   last_error: string | null;
 };
-type Opportunity = { setup_id: string; symbol: string; setup: string; state: string; opportunity: number; adx: number | null; volume: number | null; rr: number | null; last_update: string | null };
+type Opportunity = {
+  setup_id: string; symbol: string; setup: string; direction: string; state: string;
+  opportunity: number; bias: number | null; trade_quality: number | null;
+  adx: number | string | null; adx_slope: number | string | null;
+  relative_volume: number | null; rr: number | null;
+  stat_edge: { status?: string; sample_size?: number; expectancy?: number | null } | null;
+  data_quality: string | null; missing_inputs: string[]; last_update: string | null;
+};
 
 const WHEEL_AGENTS = [
   "MACRO", "METALS", "CRYPTO", "EQUITIES", "LIQUIDITY",
@@ -361,9 +368,9 @@ export default function CommandCenter() {
         <div className="panel-title flex items-center justify-between">
           <span>LIVE OPPORTUNITY RADAR</span><span className="normal-case tracking-normal text-[#22c55e]">SCANNING · {radar.length} candidates</span>
         </div>
-        <table className="w-full min-w-[760px] text-[10px]"><thead className="text-[#71809a]"><tr>
-          <th className="px-2 py-1 text-left">ASSET</th><th className="text-left">SETUP</th><th>STATE</th><th>OPPORTUNITY</th><th>ADX</th><th>VOLUME</th><th>R:R</th><th>LAST UPDATE</th>
-        </tr></thead><tbody>{radar.slice(0, 8).map((item) => <tr key={item.setup_id} className="border-t border-[#1e2936] text-center"><td className="px-2 py-1 text-left text-[#c9d4e3]">{item.symbol}</td><td className="text-left text-[#9db2d0]">{item.setup}</td><td className={item.state === "CONFIRMED" ? "text-[#22c55e]" : "text-[#f59e0b]"}>{item.state}</td><td>{item.opportunity.toFixed(0)}</td><td>{item.adx?.toFixed(1) ?? "N/A"}</td><td>{item.volume?.toFixed(0) ?? "N/A"}</td><td>{item.rr ?? "N/A"}</td><td className="text-[#71809a]">{item.last_update?.slice(11, 19) ?? "—"}</td></tr>)}</tbody></table>
+        <table className="w-full min-w-[1250px] text-[9px]"><thead className="text-[#71809a]"><tr>
+          <th className="px-2 py-1 text-left">ASSET</th><th className="text-left">SETUP</th><th>DIR</th><th>STATE</th><th>OPP</th><th>BIAS</th><th>QUALITY</th><th>ADX</th><th>ADX SLOPE</th><th>REL VOL</th><th>R:R</th><th>STAT EDGE</th><th>DATA</th><th>AGE</th>
+        </tr></thead><tbody>{radar.slice(0, 15).map((item) => <tr key={item.setup_id} title={item.missing_inputs.join(", ")} className="border-t border-[#1e2936] text-center"><td className="px-2 py-1 text-left text-[#c9d4e3]">{item.symbol}</td><td className="text-left text-[#9db2d0]">{item.setup}</td><td>{item.direction}</td><td className={stateTone(item.state)}>{item.state}</td><td>{item.opportunity.toFixed(0)}</td><td>{item.bias ?? "—"}</td><td>{item.trade_quality ?? "—"}</td><td>{typeof item.adx === "number" ? item.adx.toFixed(1) : "INSUFFICIENT"}</td><td>{typeof item.adx_slope === "number" ? item.adx_slope.toFixed(2) : "—"}</td><td>{item.relative_volume?.toFixed(2) ?? "N/A"}</td><td>{item.rr?.toFixed(2) ?? "N/A"}</td><td>{item.stat_edge?.status === "AVAILABLE" ? item.stat_edge.expectancy?.toFixed(2) : `N=${item.stat_edge?.sample_size ?? 0}`}</td><td>{item.data_quality ?? "UNKNOWN"}</td><td className="text-[#71809a]">{fmtAgo(item.last_update)}</td></tr>)}</tbody></table>
         {radar.length === 0 && <p className="px-2 py-2 text-[10px] text-[#71809a]">NO QUALIFIED SETUP · esperando datos y reacción confirmable</p>}
       </section>
 
@@ -553,6 +560,14 @@ function fmtAgo(iso: string | null): string {
   const h = Math.floor(mins / 60);
   if (h < 48) return `${h}h`;
   return `${Math.floor(h / 24)}d`;
+}
+
+function stateTone(state: string): string {
+  if (state === "CONFIRMED") return "text-[#22c55e]";
+  if (state === "ARMED") return "text-[#f59e0b]";
+  if (state === "REJECTED" || state === "INVALIDATED") return "text-[#ef4444]";
+  if (state === "INSUFFICIENT_DATA") return "text-[#71809a]";
+  return "text-[#c9d4e3]";
 }
 
 function sessionOfNow(): string {

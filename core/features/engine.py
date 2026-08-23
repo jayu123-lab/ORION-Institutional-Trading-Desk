@@ -116,6 +116,8 @@ def calculate_features(
         return FeatureSnapshot(symbol, timeframe, stamp, values)
     atr = _atr(candles, 14)
     adx, plus_di, minus_di = _adx(candles)
+    previous_adx = _adx(candles[:-1])[0] if len(candles) > 30 else None
+    prior_adx = _adx(candles[:-2])[0] if len(candles) > 31 else None
     closes = [float(c.close) for c in candles[-21:]]
     returns = [closes[i] / closes[i - 1] - 1 for i in range(1, len(closes)) if closes[i - 1]]
     realized = pstdev(returns) * sqrt(252) if len(returns) > 1 else None
@@ -139,12 +141,15 @@ def calculate_features(
     add("adx", adx)
     add(
         "adx_slope",
-        (adx - mean([_adx(candles[:-1])[0] or adx]))
-        if adx is not None and len(candles) > 30
-        else None,
+        adx - previous_adx if adx is not None and previous_adx is not None else None,
     )
     add("adx_bucket", classify_adx(adx))
-    add("adx_acceleration", None)
+    add(
+        "adx_acceleration",
+        (adx - previous_adx) - (previous_adx - prior_adx)
+        if adx is not None and previous_adx is not None and prior_adx is not None
+        else None,
+    )
     add("plus_di", plus_di)
     add("minus_di", minus_di)
     add("di_spread", plus_di - minus_di if plus_di is not None and minus_di is not None else None)
@@ -163,6 +168,16 @@ def calculate_features(
         "volume_acceleration",
         float(volume) - mean(volumes[:-1]) if volume is not None and len(volumes) > 1 else None,
     )
+    average_volume = mean(volumes[:-1]) if len(volumes) > 1 else None
+    volume_std = pstdev(volumes[:-1]) if len(volumes) > 2 else None
+    volume_z = (
+        (float(volume) - average_volume) / volume_std
+        if volume is not None and average_volume is not None and volume_std
+        else None
+    )
+    add("average_volume", average_volume)
+    add("volume_z_score", volume_z)
+    add("volume_class", classify_volume(volume_z))
     add("vwap", None, "UNKNOWN", "NOT_AVAILABLE")
     add("delta", None, "UNKNOWN", "NOT_AVAILABLE")
     add("cvd", None, "UNKNOWN", "NOT_AVAILABLE")
@@ -187,3 +202,15 @@ def classify_adx(adx: float | None) -> str:
     if adx < 50:
         return "VERY STRONG"
     return "EXTREME / POSSIBLE LATE TREND"
+
+
+def classify_volume(z_score: float | None) -> str:
+    if z_score is None:
+        return "NOT_AVAILABLE"
+    if z_score < -0.75:
+        return "LOW"
+    if z_score < 1.0:
+        return "NORMAL"
+    if z_score < 2.0:
+        return "HIGH"
+    return "EXTREME"

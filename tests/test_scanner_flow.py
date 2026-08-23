@@ -4,8 +4,10 @@ from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 from core.features.engine import calculate_features, classify_adx
+from core.scanner.service import selective_agents, setup_identity
 from core.setups.expected_move import expected_move
 from core.setups.library import SetupCandidate, opportunity_score, transition
+from core.setups.quality import SetupQualityGate
 
 
 def _bars(count: int = 45):
@@ -43,12 +45,53 @@ def test_expected_move_requires_real_historical_sample():
 
 def test_score_exposes_subscores_and_state_requires_reaction():
     score = opportunity_score(
-        {"context": 70, "location": 80, "liquidity": 75, "order_flow": None, "rr": 90}
+        {"context": 70, "location": 80, "liquidity": 75, "reaction": None, "rr": 90}
     )
     assert 0 <= score["total"] <= 100
-    assert "order_flow" in score["subscores"]
+    assert "reaction" in score["missing_inputs"]
     candidate = SetupCandidate("one", "XAUUSD", "LIQUIDITY_SWEEP_REVERSAL", "LONG", score=90)
     transition(candidate, in_zone=True, reaction=False, score=90)
+    assert candidate.state == "WATCHING"
+    transition(candidate, in_zone=True, reaction=True, score=90)
     assert candidate.state == "ARMED"
     transition(candidate, in_zone=True, reaction=True, score=90)
     assert candidate.state == "CONFIRMED"
+
+
+def test_quality_gate_caps_missing_critical_inputs_and_rr():
+    base = {
+        name: True
+        for name in (
+            "price",
+            "liquidity_level",
+            "sweep_evidence",
+            "reaction_evidence",
+            "atr",
+            "adx",
+            "structure",
+            "entry_zone",
+            "entry",
+            "invalidation",
+            "target",
+            "fresh_data",
+        )
+    }
+    missing_rr = SetupQualityGate().evaluate("LIQUIDITY_SWEEP_REVERSAL", base, 88)
+    assert missing_rr.state == "WATCHING"
+    assert missing_rr.score_cap == 49
+    assert "rr" in missing_rr.missing
+    rejected = SetupQualityGate().evaluate("LIQUIDITY_SWEEP_REVERSAL", {**base, "rr": 1.5}, 88)
+    assert rejected.state == "REJECTED"
+
+
+def test_setup_identity_deduplicates_same_context_and_selects_agents():
+    one = setup_identity(
+        "BTCUSD", "LIQUIDITY_SWEEP_REVERSAL", "LONG", 100.0, "NEW_YORK", "20260101-NEW_YORK"
+    )
+    two = setup_identity(
+        "BTCUSD", "LIQUIDITY_SWEEP_REVERSAL", "LONG", 100.0, "NEW_YORK", "20260101-NEW_YORK"
+    )
+    assert one == two and len(one) == 24
+    agents = selective_agents("BTCUSD", 73)
+    assert "crypto-analyst" in agents and "metals-analyst" not in agents
+    assert {"risk-manager", "audit-agent", "orion-cio"} <= set(agents)

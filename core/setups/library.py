@@ -15,7 +15,15 @@ SETUP_NAMES = (
     "HIGH_VOLUME_BREAKOUT",
     "ABSORPTION_REVERSAL",
 )
-STATES = ("WATCHING", "ARMED", "CONFIRMED", "INVALIDATED", "CANCELLED")
+STATES = (
+    "INSUFFICIENT_DATA",
+    "WATCHING",
+    "ARMED",
+    "CONFIRMED",
+    "REJECTED",
+    "INVALIDATED",
+    "EXPIRED",
+)
 
 
 @dataclass
@@ -45,12 +53,12 @@ def transition(
     """Deterministic state machine; confirmation requires reaction and valid data."""
     if not valid:
         candidate.state = "INVALIDATED"
-    elif candidate.state == "WATCHING" and in_zone:
+    elif candidate.state == "WATCHING" and in_zone and reaction:
         candidate.state = "ARMED"
     elif candidate.state == "ARMED" and reaction and (score or candidate.score) >= 82:
         candidate.state = "CONFIRMED"
     elif candidate.state in {"WATCHING", "ARMED"} and not in_zone:
-        candidate.state = "CANCELLED" if candidate.state == "ARMED" else "WATCHING"
+        candidate.state = "EXPIRED" if candidate.state == "ARMED" else "WATCHING"
     if score is not None:
         candidate.score = score
     candidate.updated_at = datetime.now(UTC)
@@ -63,15 +71,15 @@ def opportunity_score(subscores: dict[str, float | None], data_quality: str = "A
         "location": 0.10,
         "liquidity": 0.10,
         "volume": 0.08,
-        "order_flow": 0.08,
         "structure": 0.10,
-        "trend_energy": 0.08,
+        "reaction": 0.12,
+        "adx": 0.10,
         "volatility": 0.07,
-        "cross_asset": 0.07,
-        "news": 0.05,
+        "cross_asset": 0.04,
+        "event_risk": 0.05,
         "statistical_edge": 0.08,
         "rr": 0.06,
-        "data_quality": 0.03,
+        "data_quality": 0.08,
     }
     available = {k: v for k, v in subscores.items() if isinstance(v, (int, float))}
     total_weight = sum(weights[k] for k in available if k in weights)
@@ -88,4 +96,5 @@ def opportunity_score(subscores: dict[str, float | None], data_quality: str = "A
         "subscores": subscores,
         "weights_used": {k: weights[k] / total_weight for k in available if k in weights},
         "data_quality": data_quality,
+        "missing_inputs": [key for key in weights if subscores.get(key) is None],
     }
