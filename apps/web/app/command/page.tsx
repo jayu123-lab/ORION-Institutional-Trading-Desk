@@ -45,6 +45,7 @@ type AgentRow = {
   last_run: string | null;
   last_error: string | null;
 };
+type Opportunity = { setup_id: string; symbol: string; setup: string; state: string; opportunity: number; adx: number | null; volume: number | null; rr: number | null; last_update: string | null };
 
 const WHEEL_AGENTS = [
   "MACRO", "METALS", "CRYPTO", "EQUITIES", "LIQUIDITY",
@@ -84,6 +85,7 @@ export default function CommandCenter() {
   const [boot, setBoot] = useState<BootCheck[]>([]);
   const [ticker, setTicker] = useState<TickerRow[]>([]);
   const [intel, setIntel] = useState<Intelligence | null>(null);
+  const [radar, setRadar] = useState<Opportunity[]>([]);
   const [agents, setAgents] = useState<AgentRow[]>([]);
   const [systemOverall, setSystemOverall] = useState<string>("…");
   const [apiError, setApiError] = useState<string | null>(null);
@@ -194,16 +196,24 @@ export default function CommandCenter() {
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => d && Array.isArray(d.agents) && setAgents(d.agents))
         .catch(() => undefined);
+    const loadRadar = () =>
+      fetch(`${API_URL}/api/v1/scanner/radar`, { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => d && setRadar(d.opportunities ?? []))
+        .catch(() => undefined);
     loadTicker();
     loadIntel();
     loadAgents();
+    loadRadar();
     const tickT = setInterval(loadTicker, 60_000);
     const tickI = setInterval(loadIntel, 30_000);
     const tickA = setInterval(loadAgents, 30_000);
+    const tickR = setInterval(loadRadar, 5_000);
     return () => {
       clearInterval(tickT);
       clearInterval(tickI);
       clearInterval(tickA);
+      clearInterval(tickR);
     };
   }, [booted, t]);
 
@@ -231,7 +241,7 @@ export default function CommandCenter() {
         const payload = await res.json();
         let reply = payload.cio?.reply ?? payload.content ?? "(empty)";
         let original: string | undefined;
-        if (payload.cio && autoTranslate && lang !== "es") {
+        if (payload.cio && autoTranslate) {
           try {
             const tr = await fetch(`${API_URL}/api/v1/i18n/translate`, {
               method: "POST",
@@ -346,6 +356,16 @@ export default function CommandCenter() {
           ))}
         </div>
       </div>
+
+      <section className="panel overflow-x-auto">
+        <div className="panel-title flex items-center justify-between">
+          <span>LIVE OPPORTUNITY RADAR</span><span className="normal-case tracking-normal text-[#22c55e]">SCANNING · {radar.length} candidates</span>
+        </div>
+        <table className="w-full min-w-[760px] text-[10px]"><thead className="text-[#71809a]"><tr>
+          <th className="px-2 py-1 text-left">ASSET</th><th className="text-left">SETUP</th><th>STATE</th><th>OPPORTUNITY</th><th>ADX</th><th>VOLUME</th><th>R:R</th><th>LAST UPDATE</th>
+        </tr></thead><tbody>{radar.slice(0, 8).map((item) => <tr key={item.setup_id} className="border-t border-[#1e2936] text-center"><td className="px-2 py-1 text-left text-[#c9d4e3]">{item.symbol}</td><td className="text-left text-[#9db2d0]">{item.setup}</td><td className={item.state === "CONFIRMED" ? "text-[#22c55e]" : "text-[#f59e0b]"}>{item.state}</td><td>{item.opportunity.toFixed(0)}</td><td>{item.adx?.toFixed(1) ?? "N/A"}</td><td>{item.volume?.toFixed(0) ?? "N/A"}</td><td>{item.rr ?? "N/A"}</td><td className="text-[#71809a]">{item.last_update?.slice(11, 19) ?? "—"}</td></tr>)}</tbody></table>
+        {radar.length === 0 && <p className="px-2 py-2 text-[10px] text-[#71809a]">NO QUALIFIED SETUP · esperando datos y reacción confirmable</p>}
+      </section>
 
       {/* ===== main grid ===== */}
       <div className="grid grid-cols-12 gap-2 flex-1 min-h-0">

@@ -344,6 +344,93 @@ class Alert(Base):
     ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
 
 
+class OpportunityCandidate(Base):
+    """Every scanner candidate, including rejected or incomplete setups."""
+
+    __tablename__ = "opportunity_candidates"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    setup_id: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+    symbol: Mapped[str] = mapped_column(String(24), index=True)
+    setup: Mapped[str] = mapped_column(String(64))
+    state: Mapped[str] = mapped_column(String(24), default="WATCHING")
+    direction: Mapped[str] = mapped_column(String(8), default="NEUTRAL")
+    opportunity_score: Mapped[float] = mapped_column(Float, default=0.0)
+    bias_score: Mapped[float | None] = mapped_column(Float)
+    trade_quality: Mapped[float | None] = mapped_column(Float)
+    features: Mapped[dict] = mapped_column(JSON, default=dict)
+    subscores: Mapped[dict] = mapped_column(JSON, default=dict)
+    statistical_edge: Mapped[dict | None] = mapped_column(JSON)
+    risk_verdict: Mapped[str | None] = mapped_column(String(24))
+    audit_verdict: Mapped[str | None] = mapped_column(String(24))
+    reason: Mapped[str] = mapped_column(Text, default="")
+    outcome: Mapped[dict | None] = mapped_column(JSON)
+    ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+class SetupStatistics(Base):
+    """Historical setup statistics, kept separate from live opportunity scores."""
+
+    __tablename__ = "setup_statistics"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    setup: Mapped[str] = mapped_column(String(64), index=True)
+    symbol: Mapped[str] = mapped_column(String(24), index=True)
+    timeframe: Mapped[str] = mapped_column(String(8))
+    context_key: Mapped[str | None] = mapped_column(String(128))
+    sample_size: Mapped[int] = mapped_column(Integer, default=0)
+    wins: Mapped[int] = mapped_column(Integer, default=0)
+    losses: Mapped[int] = mapped_column(Integer, default=0)
+    win_rate: Mapped[float | None] = mapped_column(Float)
+    average_r: Mapped[float | None] = mapped_column(Float)
+    median_r: Mapped[float | None] = mapped_column(Float)
+    profit_factor: Mapped[float | None] = mapped_column(Float)
+    expectancy_r: Mapped[float | None] = mapped_column(Float)
+    max_drawdown: Mapped[float | None] = mapped_column(Float)
+    mfe: Mapped[float | None] = mapped_column(Float)
+    mae: Mapped[float | None] = mapped_column(Float)
+    median_time_to_t1: Mapped[float | None] = mapped_column(Float)
+    failure_modes: Mapped[dict | None] = mapped_column(JSON)
+    ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+class FeatureDatasetRow(Base):
+    """Point-in-time feature row for future temporal ML, never trained live."""
+
+    __tablename__ = "feature_dataset"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    asset: Mapped[str] = mapped_column(String(24), index=True)
+    timeframe: Mapped[str] = mapped_column(String(8))
+    features: Mapped[dict] = mapped_column(JSON)
+    setup: Mapped[str | None] = mapped_column(String(64))
+    entry_zone: Mapped[dict | None] = mapped_column(JSON)
+    trigger: Mapped[str | None] = mapped_column(String(64))
+    outcome: Mapped[str | None] = mapped_column(String(24))
+    mfe: Mapped[float | None] = mapped_column(Float)
+    mae: Mapped[float | None] = mapped_column(Float)
+    future_return_1m: Mapped[float | None] = mapped_column(Float)
+    future_return_5m: Mapped[float | None] = mapped_column(Float)
+    future_return_15m: Mapped[float | None] = mapped_column(Float)
+    future_return_30m: Mapped[float | None] = mapped_column(Float)
+    future_return_1h: Mapped[float | None] = mapped_column(Float)
+
+
+class ModelRegistry(Base):
+    """Registry for shadow/candidate models; no model controls live execution."""
+
+    __tablename__ = "model_registry"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    model_id: Mapped[str] = mapped_column(String(96), unique=True)
+    version: Mapped[str] = mapped_column(String(32))
+    model_type: Mapped[str] = mapped_column(String(32))
+    features: Mapped[list] = mapped_column(JSON)
+    training_range: Mapped[dict | None] = mapped_column(JSON)
+    validation_range: Mapped[dict | None] = mapped_column(JSON)
+    out_of_sample_metrics: Mapped[dict | None] = mapped_column(JSON)
+    calibration: Mapped[dict | None] = mapped_column(JSON)
+    status: Mapped[str] = mapped_column(String(16), default="CANDIDATE")
+    ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class Lesson(Base):
     """Append-only institutional memory. Never rewrite history."""
 

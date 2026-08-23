@@ -19,6 +19,15 @@ if (-not (Test-OrionHealth)) {
     -WorkingDirectory $Repo -RedirectStandardOutput $apiLog -RedirectStandardError (Join-Path $LogDir "launcher-api.err.log") -WindowStyle Hidden
 }
 
+$monitorRunning = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+  Where-Object { $_.CommandLine -like "*apps.monitor.main*" }
+if (-not $monitorRunning) {
+  $python = Join-Path $Repo ".venv\Scripts\python.exe"
+  if (-not (Test-Path -LiteralPath $python)) { $python = (Get-Command python.exe).Source }
+  Start-Process -FilePath $python -ArgumentList "-m apps.monitor.main" -WorkingDirectory $Repo `
+    -RedirectStandardOutput (Join-Path $LogDir "launcher-monitor.log") -RedirectStandardError (Join-Path $LogDir "launcher-monitor.err.log") -WindowStyle Hidden
+}
+
 $webDir = Join-Path $Repo "apps\web"
 $webLog = Join-Path $LogDir "launcher-web.log"
 if (-not (Test-NetConnection -ComputerName 127.0.0.1 -Port 3000 -InformationLevel Quiet)) {

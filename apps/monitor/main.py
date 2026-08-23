@@ -58,6 +58,9 @@ class OrionMonitor:
         self.health = FeedHealth()
         self.session_factory = get_session_factory()
         self.bus = get_event_bus()
+        from core.scanner.service import OrionScanner
+
+        self.scanner = OrionScanner(self.session_factory)
         self._stop = asyncio.Event()
         self._tick_count = 0
 
@@ -94,7 +97,9 @@ class OrionMonitor:
                 counts = backfill_all_timeframes(session)
             logger.info(
                 "candle rollup: M15=%s H1=%s H4=%s",
-                counts["M15"], counts["H1"], counts["H4"],
+                counts["M15"],
+                counts["H1"],
+                counts["H4"],
             )
         except Exception:  # noqa: BLE001 - rollup must never kill the monitor
             logger.exception("candle rollup failed")
@@ -142,6 +147,7 @@ class OrionMonitor:
 
         self._upsert_sources()
         self._write_risk_snapshot()
+        self.scanner.scan_once()
 
     # -------------------------------------------------------------- storage
     async def _store_quote(self, provider_name: str, quote) -> None:
