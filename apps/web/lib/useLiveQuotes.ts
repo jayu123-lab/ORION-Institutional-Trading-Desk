@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { API_URL } from "@/lib/api";
 
 export type LiveQuote = {
   symbol: string;
@@ -8,13 +9,13 @@ export type LiveQuote = {
   bid?: number | null;
   ask?: number | null;
   provider?: string;
+  proxy_of?: string | null;
   status: string;
   ts?: string;
 };
 
 export type Transport = "connecting" | "live" | "polling" | "offline";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 const WS_URL = `${API_URL.replace(/^http/, "ws")}/ws/events`;
 
 /**

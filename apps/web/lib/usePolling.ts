@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { API_URL } from "@/lib/api";
 
 export function usePolling<T>(path: string, intervalMs = 5000) {
   const [data, setData] = useState<T | null>(null);
@@ -10,7 +11,7 @@ export function usePolling<T>(path: string, intervalMs = 5000) {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch(path.startsWith("http") ? path : `${process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000"}${path}`, { cache: "no-store" });
+      const res = await fetch(path.startsWith("http") ? path : `${API_URL}${path}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setData((await res.json()) as T);
       setError(null);

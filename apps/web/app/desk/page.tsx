@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { API_URL as API } from "@/lib/api";
 
 type Msg = { id: number; author: string; content: string; ts: string };
 
@@ -14,8 +15,6 @@ const AGENTS = [
   "orion-news",
   "orion-risk-manager",
 ];
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
 export default function DeskRoom() {
   const [messages, setMessages] = useState<Msg[]>([]);

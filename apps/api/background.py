@@ -40,13 +40,18 @@ class EmbeddedDataService:
         self._stop.set()
 
     async def run_forever(self) -> None:
-        logger.info("embedded data service started (%s symbols)", len(self.symbols))
+        logger.info(
+            "EMBEDDED DATA SERVICE STARTED (%s symbols, providers=%s)",
+            len(self.symbols),
+            self.registry.names,
+        )
         await self.refresh_quotes()
         await self.refresh_news()
         quote_interval = max(15, int(self.settings.orion_embedded_quote_interval_sec))
         news_interval = max(120, int(self.settings.orion_embedded_news_interval_sec))
         next_news = asyncio.get_running_loop().time() + news_interval
         while not self._stop.is_set():
+            logger.debug("next quote cycle in %ss", quote_interval)
             try:
                 await asyncio.wait_for(self._stop.wait(), timeout=quote_interval)
                 break
@@ -59,21 +64,29 @@ class EmbeddedDataService:
                 next_news = now + news_interval
 
     async def refresh_quotes(self) -> None:
+        stored = failed = skipped = 0
         for symbol in self.symbols:
             if self._stop.is_set():
                 return
             try:
                 provider = self.registry.resolve(symbol)
-                supported = getattr(provider, "supported", None)
-                if supported is not None and symbol.upper() not in supported:
-                    continue
+            except ProviderUnavailable as exc:
+                logger.debug("quote routing failed %s: %s", symbol, exc)
+                skipped += 1
+                continue
+            try:
                 quote = await provider.get_quote(symbol)
-            except ProviderUnavailable:
+            except ProviderUnavailable as exc:
+                logger.debug("quote unavailable %s via %s: %s", symbol, provider.name, exc)
+                skipped += 1
                 continue
             except Exception as exc:  # noqa: BLE001
-                logger.debug("embedded quote failed %s: %s", symbol, exc)
+                logger.warning("QUOTE FAILED %s via %s: %s", symbol, provider.name, exc)
+                failed += 1
                 continue
             await self._store_quote(provider.name, symbol, quote)
+            stored += 1
+        logger.info("QUOTES CYCLE DONE stored=%d failed=%d unroutable=%d", stored, failed, skipped)
 
     async def _store_quote(self, provider_name: str, symbol: str, quote) -> None:  # noqa: ANN001
         with self.session_factory() as session:
@@ -96,8 +109,11 @@ class EmbeddedDataService:
     async def refresh_news(self) -> None:
         try:
             from providers.news.rss import ingest_news
+
             inserted = await ingest_news()
             if inserted:
-                logger.info("embedded news: %s new headlines", inserted)
+                logger.info("NEWS CYCLE: %s new headlines", inserted)
+            else:
+                logger.info("NEWS CYCLE: no new headlines")
         except Exception as exc:  # noqa: BLE001
-            logger.debug("embedded news failed: %s", exc)
+            logger.warning("news cycle failed: %s", exc)

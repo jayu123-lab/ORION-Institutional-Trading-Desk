@@ -7,6 +7,7 @@ type QuoteRow = {
   symbol: string;
   price?: number | null;
   provider?: string;
+  proxy_of?: string | null;
   status: string;
   ts?: string;
 };
@@ -40,6 +41,9 @@ export default function GoldDashboard() {
     <div className="flex flex-col gap-4">
       <div className="panel">
         <div className="panel-title">GOLD COMPLEX · XAUUSD / GC / MGC + DRIVERS</div>
+        {quotes.error ? (
+          <p className="p-4 text-[#ef4444]">API OFFLINE — {quotes.error}</p>
+        ) : (
         <table className="w-full text-[12px]">
           <thead className="text-[#71809a] border-b border-[#1e2936]">
             <tr>
@@ -47,6 +51,7 @@ export default function GoldDashboard() {
               <th className="text-right px-3 py-2">LAST</th>
               <th className="text-left px-3 py-2">PROVIDER</th>
               <th className="text-left px-3 py-2">STATUS</th>
+              <th className="text-left px-3 py-2">UPDATED</th>
             </tr>
           </thead>
           <tbody>
@@ -54,15 +59,25 @@ export default function GoldDashboard() {
               <tr key={q.symbol} className="border-b border-[#141c28] hover:bg-[#141c28]">
                 <td className="px-3 py-1.5 font-bold">{q.symbol}</td>
                 <td className="px-3 py-1.5 text-right tabular-nums">{q.price ?? "—"}</td>
-                <td className="px-3 py-1.5 text-[#71809a]">{q.provider ?? "—"}</td>
-                <td className={`px-3 py-1.5 status-${q.status.toLowerCase()}`}>{q.status}</td>
+                <td className="px-3 py-1.5 text-[#71809a]">
+                  {q.provider
+                    ? q.proxy_of
+                      ? `${q.provider} · proxy ${q.proxy_of}`
+                      : q.provider
+                    : "NOT AVAILABLE"}
+                </td>
+                <td className={`px-3 py-1.5 status-${q.status.toLowerCase()}`}>
+                  {q.status === "NO_DATA" ? "NO DATA" : q.status}
+                </td>
+                <td className="px-3 py-1.5 text-[#71809a]">{q.ts?.slice(11, 19) ?? "—"}</td>
               </tr>
             ))}
             {rows.length === 0 && (
-              <tr><td colSpan={4} className="px-3 py-3 text-[#71809a]">NO DATA AVAILABLE</td></tr>
+              <tr><td colSpan={5} className="px-3 py-3 text-[#71809a]">WAITING FOR FIRST DATA…</td></tr>
             )}
           </tbody>
         </table>
+        )}
       </div>
 
       <div className="panel">

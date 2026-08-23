@@ -85,6 +85,8 @@ def watchlist() -> dict:
 
 @router.get("/quotes")
 def quotes(session: Session = Depends(get_db)) -> list[dict]:
+    from providers.yahoo.adapter import PROXY_SYMBOLS
+
     s = get_settings()
     stale_after = timedelta(seconds=s.monitor_quote_staleness_sec)
     now = datetime.now(UTC)
@@ -101,6 +103,9 @@ def quotes(session: Session = Depends(get_db)) -> list[dict]:
         status = q.status
         if q.status == "LIVE" and now - ts > stale_after:
             status = "STALE"
+        # Honest labeling: XAUUSD/XAGUSD prints are COMEX front-month futures,
+        # not exact spot. The dashboard must show the proxy instrument.
+        proxy_of = PROXY_SYMBOLS.get(sym) if q.provider == "yahoo" else None
         out.append(
             {
                 "symbol": sym,
@@ -108,6 +113,7 @@ def quotes(session: Session = Depends(get_db)) -> list[dict]:
                 "bid": q.bid,
                 "ask": q.ask,
                 "provider": q.provider,
+                "proxy_of": proxy_of,
                 "status": status,
                 "ts": str(q.ts_received),
             }

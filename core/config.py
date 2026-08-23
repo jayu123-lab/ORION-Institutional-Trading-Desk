@@ -16,7 +16,9 @@ class Settings(BaseSettings):
 
     api_host: str = "127.0.0.1"
     api_port: int = 8000
-    api_cors_origins: str = "http://localhost:3000"
+    # Both loopback forms must be allowed so the dashboard works opened as
+    # http://localhost:3000 or http://127.0.0.1:3000 (browser Origin differs).
+    api_cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 
     # Execution safety: live requires BOTH a true flag and matching token.
     orion_live_mode: bool = False
@@ -38,6 +40,7 @@ class Settings(BaseSettings):
 
     # Multi-asset feeds (see docs/DATA_SOURCES.md)
     orion_yahoo_enabled: bool = True  # indices/commodities/stocks/FX/rates (unofficial API)
+    orion_coinbase_enabled: bool = True  # crypto spot majors via public exchange ticker
     orion_simulated_enabled: bool = False  # dev-only fallback, always tagged SIMULATED
 
     # Event bus: empty → in-process InMemoryEventBus; redis://... → RedisEventBus

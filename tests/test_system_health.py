@@ -7,6 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from apps.api.routers.system import _classify, _service_states
+from core.config import get_settings
 from core.memory.models import Base, Candle, NewsItem, Quote
 
 
@@ -17,6 +18,12 @@ def session():
     s = Session(engine)
     yield s
     s.close()
+
+
+@pytest.fixture()
+def rtds_enabled(monkeypatch):
+    """Force the embedded RTDS monitor ON for feed-state assertions."""
+    monkeypatch.setattr(get_settings(), "orion_polymarket_ws_embedded", True)
 
 
 def test_classify_thresholds():
@@ -31,11 +38,25 @@ def test_empty_db_reports_failed_services(session):
     now = datetime.now(UTC)
     states = {s["service"]: s["state"] for s in _service_states(session, now)}
     assert states["monitor.yahoo_poller"] == "FAILED"
-    assert states["monitor.polymarket_rtds"] == "FAILED"
     assert states["news.rss_cycle"] == "FAILED"
     assert states["monitor.candle_rollup"] == "FAILED"
 
 
+def test_rtds_disabled_reports_not_configured(session):
+    """RTDS off in config → NOT_CONFIGURED, never a fake FAILED."""
+    now = datetime.now(UTC)
+    states = {s["service"]: s["state"] for s in _service_states(session, now)}
+    assert states["monitor.polymarket_rtds"] == "NOT_CONFIGURED"
+
+
+@pytest.mark.usefixtures("rtds_enabled")
+def test_empty_db_reports_failed_services_with_rtds_on(session):
+    now = datetime.now(UTC)
+    states = {s["service"]: s["state"] for s in _service_states(session, now)}
+    assert states["monitor.polymarket_rtds"] == "FAILED"  # enabled + no ticks = FAILED
+
+
+@pytest.mark.usefixtures("rtds_enabled")
 def test_fresh_quotes_are_healthy(session):
     now = datetime.now(UTC)
     for provider in ("yahoo", "polymarket-rtds"):

@@ -32,6 +32,7 @@ class SimulatedDataProvider(MarketDataProvider):
     """Deterministic sine-wave walk around a base price (seeded by symbol+time)."""
 
     name = "simulated"
+    supported = frozenset(_BASE_PRICES)
 
     def _price_at(self, symbol: str, ts: datetime) -> float:
         base = _BASE_PRICES.get(symbol.upper())

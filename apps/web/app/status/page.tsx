@@ -19,10 +19,13 @@ type SystemStatus = {
 const STATE_CLS: Record<string, string> = {
   HEALTHY: "up",
   OPERATIONAL: "up",
+  CONNECTED: "up",
   IDLE: "text-[#71809a]",
+  NOT_CONFIGURED: "text-[#71809a]",
   DEGRADED: "text-[#f59e0b]",
   STALE: "text-[#f59e0b]",
   FAILED: "down",
+  DISCONNECTED: "down",
 };
 
 function fmtUptime(s: number): string {
@@ -125,9 +128,12 @@ export default function StatusPage() {
       <div className="panel">
         <div className="panel-title">Health Probe</div>
         <p className="p-4 text-[11px] text-[#71809a] leading-relaxed">
-          GET /health → verificación manual desde terminal:
+          GET /api/v1/health (alias: /health) — verificación manual desde terminal:
           <br />
-          <code className="text-[#22c55e]">curl http://127.0.0.1:8000/health</code>
+          <code className="text-[#22c55e]">curl http://127.0.0.1:8000/api/v1/health</code>
+          <br />
+          El estado de esta página se refresca cada 5s vía REST polling; el badge de
+          transporte del Market Overview refleja WebSocket vs polling real.
         </p>
       </div>
     </div>

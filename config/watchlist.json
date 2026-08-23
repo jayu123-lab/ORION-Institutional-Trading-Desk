@@ -1,6 +1,6 @@
 {
   "symbols": [
-    "XAUUSD", "XAGUSD", "SI", "HG",
+    "XAUUSD", "XAGUSD", "GC", "MGC", "SI", "HG",
     "SPX", "NDX", "NASDAQ", "DJI", "DAX", "IBEX", "FTSE", "VIX",
     "ES", "NQ",
     "CL", "BZ", "NG", "ZW", "ZC", "KC",
@@ -9,5 +9,5 @@
     "DXY", "EURUSD", "GBPUSD", "USDJPY",
     "US10Y", "US13W"
   ],
-  "_comment": "Editable watchlist; API reads this file on each request. Coverage: metals, indices, index futures, energy/agri commodities, megacap stocks, crypto, FX, rates."
+  "_comment": "Editable watchlist; API reads this file on each request. Coverage: metals (+GC/MGC gold futures), indices, index futures, energy/agri commodities, megacap stocks, crypto, FX, rates."
 }

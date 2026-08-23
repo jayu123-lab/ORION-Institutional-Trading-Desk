@@ -58,11 +58,14 @@ DESK_TO_YAHOO: dict[str, str] = {
     # Equity index futures
     "ES": "ES=F",
     "NQ": "NQ=F",
-    # Metals (spot proxied by front-month future â€” see docstring)
+    # Metals (spot proxied by front-month future â€” see PROXY_SYMBOLS)
     "XAUUSD": "GC=F",
     "XAGUSD": "SI=F",
     "SI": "SI=F",
     "HG": "HG=F",
+    # Metals futures (direct contracts, verified on Yahoo 2026-08-23, CMX)
+    "GC": "GC=F",
+    "MGC": "MGC=F",
     # Energy & agriculture
     "CL": "CL=F",
     "BZ": "BZ=F",
@@ -80,10 +83,17 @@ DESK_TO_YAHOO: dict[str, str] = {
     "US13W": "^IRX",
     # Single stocks (megacap core)
 }
-
 STOCKS = ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AMD", "NFLX", "JPM", "KO"]
 for _s in STOCKS:
     DESK_TO_YAHOO[_s] = _s
+
+# Desk symbols served through a DIFFERENT instrument than their name implies.
+# The dashboard MUST surface this so a futures print is never shown as exact
+# spot XAUUSD. Verified proxies (front-month COMEX future):
+PROXY_SYMBOLS: dict[str, str] = {
+    "XAUUSD": "GC=F",
+    "XAGUSD": "SI=F",
+}
 
 TIMEFRAME_MAP = {  # timeframe -> (interval, range)
     "M1": ("1m", "1d"),

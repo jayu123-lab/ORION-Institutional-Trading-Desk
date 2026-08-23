@@ -112,6 +112,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.get("/health", include_in_schema=False)
+def health_alias() -> dict:
+    """Top-level alias so `curl http://127.0.0.1:8000/health` works too."""
+    return {"status": "ok", "service": "orion-api", "version": "0.1.0"}
+
+
 for router_module in (system, market, chat, desk, ideas, orders, analytics):
     app.include_router(router_module.router)
 app.include_router(tv_router)

@@ -68,12 +68,57 @@ def _service_states(session: Session, now: datetime) -> list[dict]:
         }
     )
 
-    st, age = feed_state("polymarket-rtds")
+    if s.orion_polymarket_ws_embedded:
+        st, age = feed_state("polymarket-rtds")
+        out.append(
+            {
+                "service": "monitor.polymarket_rtds",
+                "state": st,
+                "detail": f"last tick {age:.0f}s ago" if age is not None else "no ticks ingested",
+            }
+        )
+    else:
+        # Intentionally disabled in configuration — report that, not a failure.
+        out.append(
+            {
+                "service": "monitor.polymarket_rtds",
+                "state": "NOT_CONFIGURED",
+                "detail": "embedded RTDS monitor disabled (ORION_POLYMARKET_WS_EMBEDDED=false)",
+            }
+        )
+
+    st, age = feed_state("coinbase")
     out.append(
         {
-            "service": "monitor.polymarket_rtds",
+            "service": "data.coinbase",
             "state": st,
-            "detail": f"last tick {age:.0f}s ago" if age is not None else "no ticks ingested",
+            "detail": f"last ticker {age:.0f}s ago" if age is not None else "no tickers ingested",
+        }
+    )
+
+    # Embedded data service = ingestion activity from ANY provider. This reflects
+    # the lifespan task that populates the dashboard when the monitor is not running.
+    last_any = session.execute(
+        select(func.max(Quote.ts_received))
+    ).scalar_one_or_none()
+    age = _age_sec(last_any, now)
+    out.append(
+        {
+            "service": "api.embedded_data",
+            "state": _classify(age, 180, 600, 1800),
+            "detail": (
+                f"ingesting, last row {age:.0f}s ago" if age is not None else "no quotes stored"
+            ),
+        }
+    )
+
+    # CFTC COT: public Socrata provider invoked on demand by /positioning/{symbol}.
+    # No scheduled ingestion → report truthfully instead of guessing a state.
+    out.append(
+        {
+            "service": "data.cftc",
+            "state": "NOT_CONFIGURED",
+            "detail": "on-demand Socrata provider (weekly COT); no scheduled ingest",
         }
     )
 

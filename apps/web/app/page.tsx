@@ -30,7 +30,9 @@ export default function MarketOverview() {
           <span className={`normal-case tracking-normal ${t.cls}`}>{t.text}</span>
         </div>
         {error ? (
-          <p className="p-4 text-[#ef4444]">API offline — {error}</p>
+          <p className="p-4 text-[#ef4444]">API OFFLINE — {error}</p>
+        ) : quotes.length === 0 ? (
+          <p className="p-4 text-[#71809a]">WAITING FOR FIRST DATA…</p>
         ) : (
           <table className="w-full text-[12px]">
             <thead className="text-[#71809a] border-b border-[#1e2936]">
@@ -41,6 +43,7 @@ export default function MarketOverview() {
                 <th className="text-right px-3 py-2">ASK</th>
                 <th className="text-left px-3 py-2">PROVIDER</th>
                 <th className="text-left px-3 py-2">STATUS</th>
+                <th className="text-left px-3 py-2">UPDATED</th>
               </tr>
             </thead>
             <tbody>
@@ -56,9 +59,18 @@ export default function MarketOverview() {
                   <td className="px-3 py-1.5 text-right tabular-nums text-[#71809a]">
                     {q.ask ?? "—"}
                   </td>
-                  <td className="px-3 py-1.5 text-[#71809a]">{q.provider ?? "—"}</td>
+                  <td className="px-3 py-1.5 text-[#71809a]">
+                    {q.provider
+                      ? q.proxy_of
+                        ? `${q.provider} · proxy ${q.proxy_of}`
+                        : q.provider
+                      : "NOT AVAILABLE"}
+                  </td>
                   <td className={`px-3 py-1.5 status-${q.status.toLowerCase()}`}>
-                    {q.status}
+                    {q.status === "NO_DATA" ? "NO DATA" : q.status}
+                  </td>
+                  <td className="px-3 py-1.5 text-[#71809a]">
+                    {q.ts?.slice(11, 19) ?? "—"}
                   </td>
                 </tr>
               ))}
