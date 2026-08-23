@@ -56,18 +56,29 @@ def _seed_assets() -> None:
 
 
 def _class_of(symbol: str) -> str:
-    metals = {"XAUUSD", "XAGUSD", "MGC", "GC"}
+
+    metals = {"XAUUSD", "XAGUSD", "SI", "HG"}
+    commodities = {"CL", "BZ", "NG", "ZW", "ZC", "KC"}
+    index_futures = {"ES", "NQ"}
     crypto = {"BTCUSD", "ETHUSD", "XRPUSD", "SOLUSD", "XLM", "HBAR"}
-    rates = {"US10Y", "US02Y"}
-    fx = {"EURUSD", "GBPUSD", "DXY"}
+    rates = {"US10Y", "US13W", "US02Y"}
+    fx = {"EURUSD", "GBPUSD", "USDJPY", "DXY"}
+    stocks = {"AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AMD", "NFLX", "JPM", "KO"}
     if symbol in metals:
         return "metal"
+    if symbol in commodities:
+        return "commodity"
+    if symbol in index_futures:
+        return "index_future"
     if symbol in crypto:
         return "crypto"
     if symbol in rates:
         return "rate"
     if symbol in fx:
         return "fx"
+    if symbol in stocks:
+        return "stock"
+    # indices & anything else mapped through yahoo default to "index"
     return "index"
 
 

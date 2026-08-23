@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     # events reach /ws/events without an external bus (single-node local desk).
     orion_polymarket_ws_embedded: bool = False
 
+    # Multi-asset feeds (see docs/DATA_SOURCES.md)
+    orion_yahoo_enabled: bool = True  # indices/commodities/stocks/FX/rates (unofficial API)
+    orion_simulated_enabled: bool = False  # dev-only fallback, always tagged SIMULATED
+
     # Paper account (PAPER mode only)
     orion_starting_equity: float = 100_000.0
 

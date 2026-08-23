@@ -9,11 +9,31 @@ no frescos.
 
 | Fuente | Tipo | Estado | Notas |
 |---|---|---|---|
-| `simulated` | interno | ACTIVO (SIMULATED) | Generador determinista para desarrollo/paper. Siempre etiquetado `SIMULATED`. |
+| `yahoo` | REST (API pública no oficial) | **ACTIVO multi-activo** | Índices, futuros (índice/energía/agri/metales), megacaps, FX, yields. Sin API key. Ver sección Yahoo. |
+| Polymarket RTDS WS | WebSocket read-only | **ACTIVO (LIVE)** | Precios crypto en tiempo real: BTCUSD/ETHUSD/SOLUSD/XRPUSD. Ver sección Polymarket. |
+| `simulated` | interno | opt-in (`ORION_SIMULATED_ENABLED`) | Generador determinista para desarrollo/paper. Siempre etiquetado `SIMULATED`. |
 | TradingView webhook | push | ACTIVO (webhook) | POST `/hooks/tradingview` con header `X-ORION-Secret`. La calidad depende del plan del usuario. |
 | Polymarket Gamma/CLOB | REST read-only | ACTIVO | Endpoints verificados abajo. Sin credenciales necesarias para lectura. |
-| Polymarket RTDS WS | WebSocket read-only | **ACTIVO (LIVE)** | Precios crypto en tiempo real: BTCUSD/ETHUSD/SOLUSD/XRPUSD. Ver sección Polymarket. |
 | Brokers (IBKR, etc.) | ejecución | NO IMPLEMENTADO (Fase 5) | Interfaces definidas en `providers/brokers/base.py`. |
+
+## Yahoo Finance (verificado empíricamente 2026-08-23)
+
+Endpoint: `GET https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1m&range=1d`
+(sin API key; header User-Agent requerido). **No oficial**: sin SLA ni garantía
+de continuidad — los fallos degradan a DISCONNECTED, nunca se fabrican datos.
+
+Cobertura verificada: GC=F 4680.6 (COMEX), ^GSPC 7674.37, ^NDX, ^IXIC, ^DJI,
+^GDAXI 26136.56, ^IBEX, ^FTSE, ^VIX, ES=F, NQ=F, SI=F, HG=F, CL=F 87.06 (NYM),
+BZ=F, NG=F, ZW=F 699.25 USX-cents (CBOT), ZC=F, KC=F, AAPL 309.35 (NasdaqGS),
+MSFT, NVDA, EURUSD=X 1.1678 (CCY), GBPUSD=X, JPY=X, DX-Y.NYB, ^TNX 4.738
+(yield 10Y), ^IRX.
+
+Notas:
+- XAUUSD/XAGUSD spot no existen en Yahoo → proxy con futuro COMEX front-month
+  (GC=F / SI=F); práctica estándar de mesa, documentada aquí.
+- Los precios de grano llegan en centavos (moneda "USX") — mantener crudo.
+- TTL cache 60 s por símbolo + pacing 0.35 s entre requests para respetar límites.
+- Fuera de sesión, el precio es el cierre de la última sesión (ts_source real).
 
 ## Polymarket (verificado contra docs oficiales)
 

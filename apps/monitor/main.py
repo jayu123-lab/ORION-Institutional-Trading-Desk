@@ -77,7 +77,10 @@ class OrionMonitor:
 
     async def tick(self) -> None:
         for provider in self.providers:
+            supported = getattr(provider, "supported", None)
             for symbol in self.symbols:
+                if supported is not None and symbol.upper() not in supported:
+                    continue  # provider does not cover this symbol (no silent fallback)
                 try:
                     quote = await provider.get_quote(symbol)
                 except Exception as exc:  # noqa: BLE001
@@ -211,13 +214,28 @@ def _symbols() -> list[str]:
 
 
 def _providers_for(registry):  # noqa: ANN001
-    """Phase 1: simulated provider until real feeds configured (Phase 2)."""
-    from core.market_data.simulated import SimulatedDataProvider
+    """Real feeds via registry (yahoo/RTDS); simulated only as dev fallback.
 
-    sim = SimulatedDataProvider()
-    if sim.name not in registry.names:
+    Symbols without a real mapping are skipped (never simulated silently).
+    """
+    providers: list = []
+    for sym in _symbols():
+        try:
+            provider = registry.resolve(sym)
+        except Exception as exc:  # noqa: BLE001 - unresolvable symbol must not kill monitor
+            logger.debug("no provider for %s: %s", sym, exc)
+            continue
+        if provider.name == "simulated" and not get_settings().orion_simulated_enabled:
+            continue
+        if provider not in providers:
+            providers.append(provider)
+    if not providers:
+        from core.market_data.simulated import SimulatedDataProvider
+
+        sim = SimulatedDataProvider()
         registry.register(sim)
-    return [registry.resolve(sym) for sym in _symbols()]
+        providers = [sim]
+    return providers
 
 
 def main() -> None:

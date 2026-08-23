@@ -40,7 +40,8 @@ Convención: `[P#]` fase, `[agent]` responsable sugerido. Marcar `[x]` al cerrar
 - [x] [P1][sim] SimulatedDataProvider etiquetado SIMULATED (paper/demo only)
 - [x] [P2][pm] PolymarketWsMonitor RTDS crypto_prices LIVE (BTCUSD/ETHUSD/SOLUSD/XRPUSD;
       reconexión exponencial, heartbeat PING 5s, filtro client-side — ver docs/DATA_SOURCES.md)
-- [ ] [P2][md] RESTAdapter genérico + adaptadores concretos según claves disponibles
+- [x] [P2][md] YahooFinanceProvider multi-activo (índices, futuros, commodities, megacaps,
+      FX, yields; API pública no oficial verificada 2026-08-23; TTL cache + pacing)
 - [ ] [P5][brokers] IBKR/Alpaca/OANDA/Binance adapters (doc oficial primero)
 
 ## Apps

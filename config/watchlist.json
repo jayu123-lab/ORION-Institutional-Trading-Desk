@@ -1,11 +1,13 @@
 {
   "symbols": [
-    "XAUUSD", "MGC", "GC", "XAGUSD",
-    "NASDAQ", "NQ", "SPX", "ES", "DAX",
-    "BTCUSD", "ETHUSD", "XRPUSD", "SOLUSD",
-    "DXY",
-    "US10Y", "US02Y",
-    "EURUSD", "GBPUSD"
+    "XAUUSD", "XAGUSD", "SI", "HG",
+    "SPX", "NDX", "NASDAQ", "DJI", "DAX", "IBEX", "FTSE", "VIX",
+    "ES", "NQ",
+    "CL", "BZ", "NG", "ZW", "ZC", "KC",
+    "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AMD", "NFLX", "JPM", "KO",
+    "BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD",
+    "DXY", "EURUSD", "GBPUSD", "USDJPY",
+    "US10Y", "US13W"
   ],
-  "_comment": "Editable watchlist; API reads this file on each request."
+  "_comment": "Editable watchlist; API reads this file on each request. Coverage: metals, indices, index futures, energy/agri commodities, megacap stocks, crypto, FX, rates."
 }

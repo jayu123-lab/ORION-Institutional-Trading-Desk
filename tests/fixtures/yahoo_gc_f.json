@@ -1,0 +1,126 @@
+{
+    "chart":  {
+                  "error":  null,
+                  "result":  [
+                                 {
+                                     "meta":  {
+                                                  "currency":  "USD",
+                                                  "symbol":  "GC=F",
+                                                  "exchangeName":  "CMX",
+                                                  "fullExchangeName":  "COMEX",
+                                                  "instrumentType":  "FUTURE",
+                                                  "firstTradeDate":  967608000,
+                                                  "regularMarketTime":  1787345998,
+                                                  "hasPrePostMarketData":  false,
+                                                  "gmtoffset":  -14400,
+                                                  "timezone":  "EDT",
+                                                  "exchangeTimezoneName":  "America/New_York",
+                                                  "regularMarketPrice":  4680.6,
+                                                  "fiftyTwoWeekHigh":  5586.2,
+                                                  "fiftyTwoWeekLow":  3366.0,
+                                                  "regularMarketDayHigh":  4690.4,
+                                                  "regularMarketDayLow":  4565.5,
+                                                  "regularMarketVolume":  190436,
+                                                  "shortName":  "Gold Dec 26",
+                                                  "chartPreviousClose":  4571.4,
+                                                  "previousClose":  4571.4,
+                                                  "scale":  3,
+                                                  "priceHint":  2,
+                                                  "currentTradingPeriod":  {
+                                                                               "pre":  {
+                                                                                           "timezone":  "EDT",
+                                                                                           "end":  1787284800,
+                                                                                           "start":  1787284800,
+                                                                                           "gmtoffset":  -14400
+                                                                                       },
+                                                                               "regular":  {
+                                                                                               "timezone":  "EDT",
+                                                                                               "end":  1787371140,
+                                                                                               "start":  1787284800,
+                                                                                               "gmtoffset":  -14400
+                                                                                           },
+                                                                               "post":  {
+                                                                                            "timezone":  "EDT",
+                                                                                            "end":  1787371140,
+                                                                                            "start":  1787371140,
+                                                                                            "gmtoffset":  -14400
+                                                                                        }
+                                                                           },
+                                                  "tradingPeriods":  [
+                                                                         [
+                                                                             {
+                                                                                 "timezone":  "EDT",
+                                                                                 "end":  1787371140,
+                                                                                 "start":  1787284800,
+                                                                                 "gmtoffset":  -14400
+                                                                             }
+                                                                         ]
+                                                                     ],
+                                                  "dataGranularity":  "1m",
+                                                  "range":  "1d",
+                                                  "validRanges":  [
+                                                                      "1d",
+                                                                      "5d",
+                                                                      "1mo",
+                                                                      "3mo",
+                                                                      "6mo",
+                                                                      "1y",
+                                                                      "2y",
+                                                                      "5y",
+                                                                      "10y",
+                                                                      "ytd",
+                                                                      "max"
+                                                                  ]
+                                              },
+                                     "timestamp":  [
+                                                       1787370840,
+                                                       1787370900,
+                                                       1787370960,
+                                                       1787371020,
+                                                       1787371080
+                                                   ],
+                                     "indicators":  {
+                                                        "quote":  [
+                                                                      {
+                                                                          "open":  [
+                                                                                       4663.2001953125,
+                                                                                       4661.7998046875,
+                                                                                       4661.39990234375,
+                                                                                       4662.39990234375,
+                                                                                       4661.7998046875
+                                                                                   ],
+                                                                          "low":  [
+                                                                                      4661.60009765625,
+                                                                                      4661.0,
+                                                                                      4661.0,
+                                                                                      4661.5,
+                                                                                      4661.10009765625
+                                                                                  ],
+                                                                          "close":  [
+                                                                                        4661.89990234375,
+                                                                                        4661.2001953125,
+                                                                                        4662.60009765625,
+                                                                                        4661.89990234375,
+                                                                                        4680.60009765625
+                                                                                    ],
+                                                                          "volume":  [
+                                                                                         82,
+                                                                                         97,
+                                                                                         53,
+                                                                                         31,
+                                                                                         69
+                                                                                     ],
+                                                                          "high":  [
+                                                                                       4663.2001953125,
+                                                                                       4662.7998046875,
+                                                                                       4662.60009765625,
+                                                                                       4662.5,
+                                                                                       4680.60009765625
+                                                                                   ]
+                                                                      }
+                                                                  ]
+                                                    }
+                                 }
+                             ]
+              }
+}

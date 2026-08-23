@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import logging
+
 from core.market_data.base import MarketDataProvider, ProviderUnavailable
+
+logger = logging.getLogger(__name__)
 
 
 class ProviderRegistry:
@@ -34,9 +38,23 @@ class ProviderRegistry:
 
 
 def build_default_registry() -> ProviderRegistry:
-    """Phase 1 default: simulated only until real feeds are configured."""
+    """Default desk registry.
+
+    Yahoo covers indices/commodities/stocks/FX/rates (unofficial public API);
+    Polymarket RTDS handles crypto LIVE separately; simulated remains as
+    opt-in fallback for development only.
+    """
+    from core.config import get_settings
     from core.market_data.simulated import SimulatedDataProvider
 
     reg = ProviderRegistry()
-    reg.register(SimulatedDataProvider())
+    if get_settings().orion_yahoo_enabled:
+        try:
+            from providers.yahoo import YahooFinanceProvider
+
+            reg.register(YahooFinanceProvider())
+        except ImportError:  # pragma: no cover - package always present in repo
+            logger.warning("yahoo provider unavailable")
+    if get_settings().orion_simulated_enabled:
+        reg.register(SimulatedDataProvider())
     return reg
