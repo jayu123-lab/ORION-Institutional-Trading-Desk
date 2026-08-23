@@ -22,8 +22,9 @@ async def convene_desk(asset: str, session: Session = Depends(get_db)) -> dict:
     audit verification stamps -> CIO synthesis. Persists Analysis+Opinions.
     """
     from core.debate.engine import DeskDebateEngine
+    from core.memory.database import get_session_factory
 
-    engine = DeskDebateEngine(session.get_bind)
+    engine = DeskDebateEngine(get_session_factory())
     debate = await engine.convene(asset)
     return debate.model_dump(mode="json")
 
