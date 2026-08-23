@@ -34,12 +34,14 @@ async def positioning(symbol: str) -> dict:
     return report.model_dump()
 
 
-def _closes(session: Session, symbol: str, limit: int = 200) -> list[float]:
+def _closes(
+    session: Session, symbol: str, *, timeframe: str = "H1", limit: int = 200
+) -> list[float]:
     rows = (
         session.execute(
             select(Candle.close)
-            .where(Candle.symbol == symbol.upper())
-            .order_by(desc(Candle.ts))
+            .where(Candle.symbol == symbol.upper(), Candle.timeframe == timeframe)
+            .order_by(desc(Candle.ts_open))
             .limit(limit)
         )
         .scalars()
@@ -51,7 +53,8 @@ def _closes(session: Session, symbol: str, limit: int = 200) -> list[float]:
 @router.get("/cross_asset/scan")
 def cross_asset_scan(session: Session = Depends(get_db)) -> dict:
     engine = CrossAssetEngine()
-    closes_by_symbol = {sym: _closes(session, sym) for _, (sym, _) in PAIR_SYMBOLS.items()}
+    symbols_needed = sorted({s for pair_syms in PAIR_SYMBOLS.values() for s in pair_syms})
+    closes_by_symbol = {sym: _closes(session, sym) for sym in symbols_needed}
     readings = engine.scan(closes_by_symbol)
 
     spx_mom = momentum_score(closes_by_symbol.get("SPX", []))

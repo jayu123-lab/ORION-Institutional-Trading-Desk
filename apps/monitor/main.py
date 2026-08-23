@@ -26,6 +26,7 @@ from core.memory.models import Alert, Quote, RiskSnapshot, Source, utcnow
 logger = logging.getLogger("orion.monitor")
 
 NEWS_INTERVAL_TICKS = 20  # heartbeat ~30s → news cycle cada ~10 min
+CANDLE_INTERVAL_TICKS = 10  # heartbeat ~30s → rollup cada ~5 min
 
 
 class FeedHealth:
@@ -72,14 +73,31 @@ class OrionMonitor:
             [p.name for p in self.providers],
         )
         await self._news_cycle()  # primer ciclo inmediato al arrancar
+        self._rollup_candles()
         while not self._stop.is_set():
             try:
                 await self.tick()
                 if self._tick_count % NEWS_INTERVAL_TICKS == 0:
                     await self._news_cycle()
+                if self._tick_count % CANDLE_INTERVAL_TICKS == 0:
+                    self._rollup_candles()
             except Exception:  # noqa: BLE001 - monitor must survive any tick failure
                 logger.exception("tick failed")
             await asyncio.sleep(settings.monitor_heartbeat_seconds)
+
+    def _rollup_candles(self) -> None:
+        """Roll stored quotes into M15/H1/H4 candles (DERIVED provenance)."""
+        from core.memory.candles import backfill_all_timeframes
+
+        try:
+            with self.session_factory() as session:
+                counts = backfill_all_timeframes(session)
+            logger.info(
+                "candle rollup: M15=%s H1=%s H4=%s",
+                counts["M15"], counts["H1"], counts["H4"],
+            )
+        except Exception:  # noqa: BLE001 - rollup must never kill the monitor
+            logger.exception("candle rollup failed")
 
     async def _news_cycle(self) -> None:
         from providers.news.rss import ingest_news

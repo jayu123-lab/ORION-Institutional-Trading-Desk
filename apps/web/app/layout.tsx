@@ -9,6 +9,13 @@ export const metadata: Metadata = {
 
 const NAV = [
   ["MARKET OVERVIEW", "/"],
+  ["GOLD", "/gold"],
+  ["CRYPTO", "/crypto"],
+  ["EQUITIES", "/equities"],
+  ["POLYMARKET", "/polymarket"],
+  ["POSITIONING", "/positioning"],
+  ["CROSS-ASSET", "/crossasset"],
+  ["BACKTEST", "/backtest"],
   ["ORION DESK", "/desk"],
   ["AGENTS", "/agents"],
   ["NEWS", "/news"],
