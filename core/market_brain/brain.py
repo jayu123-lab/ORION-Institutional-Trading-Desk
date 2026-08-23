@@ -113,7 +113,10 @@ class MarketBrain:
         if mom is not None:
             components.append(
                 ComponentScore(
-                    name="momentum", value=round(mom, 3), scale="-1_1", provenance=ProvenanceType.DERIVED
+                    name="momentum",
+                    value=round(mom, 3),
+                    scale="-1_1",
+                    provenance=ProvenanceType.DERIVED,
                 )
             )
 

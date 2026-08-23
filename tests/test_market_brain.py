@@ -79,7 +79,10 @@ class TestScores:
         assert momentum_score([100.0] * 5) is None
 
     def test_liquidity_all_inputs_missing_none(self):
-        assert liquidity_score(spread_bps=None, relative_volume=None, range_contraction=None) is None
+        assert (
+            liquidity_score(spread_bps=None, relative_volume=None, range_contraction=None)
+            is None
+        )
 
     def test_liquidity_tight_spread_good(self):
         s = liquidity_score(spread_bps=1.5, relative_volume=None, range_contraction=None)
@@ -125,8 +128,16 @@ class TestScores:
 
 class TestCandleMetrics:
     class C:
-        def __init__(self, o: float, h: float, l: float, c: float, volume: float | None = None):
-            self.open, self.high, self.low, self.close, self.volume = o, h, l, c, volume
+        def __init__(
+            self,
+            opn: float,
+            high: float,
+            low: float,
+            close: float,
+            volume: float | None = None,
+        ):
+            self.open, self.high, self.low = opn, high, low
+            self.close, self.volume = close, volume
 
     def test_relative_volume(self):
         candles = [self.C(1, 2, 0.5, 1.5, volume=100.0) for _ in range(21)]
