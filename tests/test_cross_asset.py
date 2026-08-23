@@ -8,7 +8,9 @@ from core.cross_asset.engine import (
 )
 
 
-def _correlated(n: int = 60, sign: float = 1.0, noise: float = 0.0) -> tuple[list[float], list[float]]:
+def _correlated(
+    n: int = 60, sign: float = 1.0, noise: float = 0.0
+) -> tuple[list[float], list[float]]:
     a, b = [], []
     for i in range(n):
         x = float(i) + noise * ((i * 7919) % 13 - 6)
@@ -48,16 +50,12 @@ class TestPairAnalysis:
 
     def test_moderate_shift_is_divergence(self):
         engine = CrossAssetEngine()
-        base_b = [0.8 * float(i) + 3.0 for i in range(40)]  # ρ=+1 baseline
-        rec_b = [-0.9 * float(i) - 5.0 for i in range(40)]  # flips sign moderately? no: strong
-        # construct a moderate case instead: baseline +1, recent weak positive ~0.4
-        import random
-
-        rng = random.Random(42)
+        base_a = [float(i) for i in range(40)]
+        base_b = [0.8 * float(i) + 3.0 for i in range(40)]  # rho = +1 baseline
+        # deterministic modular noise (no RNG): recent rho ~ 0.74 (delta 0.26)
         rec_a = [float(i) for i in range(40)]
-        rec_b = [0.4 * i + rng.uniform(-25, 25) for i in range(40)]
-        closes_a = base_b and ([float(i) for i in range(40)]) + rec_a
-        reading = engine.analyze_pair("GOLD_SILVER", closes_a, ([b for b in base_b]) + rec_b)
+        rec_b = [0.4 * i + ((i * 7919) % 51 - 25) / 25.0 * 8.0 for i in range(40)]
+        reading = engine.analyze_pair("GOLD_SILVER", base_a + rec_a, base_b + rec_b)
         assert reading.state == RelationState.DIVERGENCE.value
 
     def test_insufficient_data(self):

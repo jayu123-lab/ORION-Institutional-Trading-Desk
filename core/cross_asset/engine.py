@@ -75,7 +75,9 @@ class RiskRegimeReading:
     detail: str
 
 
-def _split_history(closes: list[float], baseline_frac: float = 0.5) -> tuple[list[float], list[float]]:
+def _split_history(
+    closes: list[float], baseline_frac: float = 0.5
+) -> tuple[list[float], list[float]]:
     """Split into baseline window (older half) and recent window (newer half)."""
     cut = max(10, int(len(closes) * baseline_frac))
     return closes[:cut], closes[cut:]
