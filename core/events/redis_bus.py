@@ -54,8 +54,7 @@ class RedisEventBus(EventBusLike):
             await self._pubsub.close()
             await self._redis.close()
         except Exception:  # noqa: BLE001 - shutdown must be quiet
-            pass
-
+            logger.debug("redis close ignored error", exc_info=True)
     def subscribe(self, pattern: str, handler) -> None:
         self._subs.setdefault(pattern, []).append(handler)
         # psubscribe is idempotent per pattern; fire-and-forget registration
@@ -86,7 +85,12 @@ class RedisEventBus(EventBusLike):
                 continue
             try:
                 data = json.loads(message["data"])
-                event = Event(topic=data["topic"], payload=data["payload"], source=data["source"], ts=data["ts"])
+                event = Event(
+                    topic=data["topic"],
+                    payload=data["payload"],
+                    source=data["source"],
+                    ts=data["ts"],
+                )
             except (json.JSONDecodeError, KeyError):
                 logger.warning("dropping malformed event frame")
                 continue
