@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     orion_yahoo_enabled: bool = True  # indices/commodities/stocks/FX/rates (unofficial API)
     orion_simulated_enabled: bool = False  # dev-only fallback, always tagged SIMULATED
 
+    # Event bus: empty → in-process InMemoryEventBus; redis://... → RedisEventBus
+    # (falls back to InMemory with a warning if the server is unreachable)
+    orion_redis_url: str = ""
+
     # Paper account (PAPER mode only)
     orion_starting_equity: float = 100_000.0
 
