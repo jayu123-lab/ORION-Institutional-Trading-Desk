@@ -19,34 +19,63 @@ router = APIRouter(prefix="/api/v1/market", tags=["market"])
 
 DEFAULT_WATCHLIST = [
     "XAUUSD",
-    "MGC",
-    "GC",
     "XAGUSD",
-    "NASDAQ",
-    "NQ",
+    "SI",
+    "HG",
     "SPX",
-    "ES",
+    "NDX",
+    "NASDAQ",
+    "DJI",
     "DAX",
+    "IBEX",
+    "FTSE",
+    "VIX",
+    "ES",
+    "NQ",
+    "CL",
+    "BZ",
+    "NG",
+    "ZW",
+    "ZC",
+    "KC",
+    "AAPL",
+    "MSFT",
+    "NVDA",
+    "AMZN",
+    "GOOGL",
+    "META",
+    "TSLA",
+    "AMD",
+    "NFLX",
+    "JPM",
+    "KO",
     "BTCUSD",
     "ETHUSD",
-    "XRPUSD",
     "SOLUSD",
+    "XRPUSD",
     "DXY",
-    "US10Y",
-    "US02Y",
     "EURUSD",
     "GBPUSD",
+    "USDJPY",
+    "US10Y",
+    "US13W",
 ]
+
+_REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 def _watchlist() -> list[str]:
-    path = Path("config/watchlist.json")
+    path = _REPO_ROOT / "config" / "watchlist.json"
     if path.exists():
         try:
-            return json.loads(path.read_text(encoding="utf-8"))
+            data = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
-            pass
-    return DEFAULT_WATCHLIST
+            return list(DEFAULT_WATCHLIST)
+        if isinstance(data, dict):  # {"symbols": [...], "_comment": ...}
+            data = data.get("symbols", [])
+        if isinstance(data, list) and data:
+            return [str(s).upper() for s in data]
+    return list(DEFAULT_WATCHLIST)
 
 
 @router.get("/watchlist")
