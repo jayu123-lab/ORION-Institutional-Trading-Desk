@@ -13,6 +13,46 @@ from core.memory.models import Analysis, MacroEvent, NewsItem
 router = APIRouter(prefix="/api/v1", tags=["desk"])
 
 
+@router.post("/desk/{asset}/convene")
+async def convene_desk(asset: str, session: Session = Depends(get_db)) -> dict:
+    """Convene the full desk for one asset (spec PRIORITY 7).
+
+    Runs the deterministic debate engine: MarketState -> 7 analyst opinions
+    -> weighted consensus (dissent preserved) -> risk constraints ->
+    audit verification stamps -> CIO synthesis. Persists Analysis+Opinions.
+    """
+    from core.debate.engine import DeskDebateEngine
+
+    engine = DeskDebateEngine(session.get_bind)
+    debate = await engine.convene(asset)
+    return debate.model_dump(mode="json")
+
+
+@router.get("/desk/{asset}/debates")
+def latest_debates(asset: str, limit: int = 5, session: Session = Depends(get_db)) -> list[dict]:
+    rows = (
+        session.execute(
+            select(Analysis)
+            .where(Analysis.kind == "debate", Analysis.asset == asset.upper())
+            .order_by(desc(Analysis.ts))
+            .limit(limit)
+        )
+        .scalars()
+        .all()
+    )
+    return [
+        {
+            "id": r.id,
+            "ts": r.ts.isoformat() if r.ts else None,
+            "stance": r.stance,
+            "confidence": r.confidence,
+            "summary": r.output_summary[:400],
+            "full": r.full_output,
+        }
+        for r in rows
+    ]
+
+
 @router.get("/agents")
 def agents_status(session: Session = Depends(get_db)) -> list[dict]:
     out = []
