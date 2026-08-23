@@ -17,6 +17,7 @@ from core.market_data.base import (
     ProviderUnavailable,
     Quote,
 )
+from core.provenance import ProvenanceType
 
 _BASE_PRICES: dict[str, float] = {
     "XAUUSD": 2350.0,
@@ -51,7 +52,12 @@ class SimulatedDataProvider(MarketDataProvider):
             ask=round(price + spread / 2, 6),
             volume=None,
             ts_source=now,
-            quality=DataQuality(provider=self.name, status=DataStatus.SIMULATED, quality="C"),
+            quality=DataQuality(
+                provider=self.name,
+                status=DataStatus.SIMULATED,
+                quality="C",
+                provenance=ProvenanceType.SIMULATED,
+            ),
         )
 
     async def get_candles(self, symbol: str, timeframe: str, limit: int = 200) -> list[Candle]:
@@ -77,7 +83,10 @@ class SimulatedDataProvider(MarketDataProvider):
                     volume=None,
                     ts_open=ts_open,
                     quality=DataQuality(
-                        provider=self.name, status=DataStatus.SIMULATED, quality="C"
+                        provider=self.name,
+                        status=DataStatus.SIMULATED,
+                        quality="C",
+                        provenance=ProvenanceType.SIMULATED,
                     ),
                 )
             )

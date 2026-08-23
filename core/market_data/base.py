@@ -14,6 +14,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from core.provenance import ProvenanceType
+
 
 class DataStatus(StrEnum):
     LIVE = "LIVE"
@@ -29,6 +31,7 @@ class DataQuality(BaseModel):
     latency_ms: int | None = None
     quality: Literal["A", "B", "C", "UNKNOWN"] = "UNKNOWN"
     status: DataStatus = DataStatus.LIVE
+    provenance: ProvenanceType | None = None
 
 
 class Quote(BaseModel):
