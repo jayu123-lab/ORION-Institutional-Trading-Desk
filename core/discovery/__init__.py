@@ -15,18 +15,16 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+import os
+import sys
+from datetime import UTC, datetime
+from typing import Any
 
-from core.config import get_settings
-import sys
-import os
+from core.config import get_settings  # noqa: F401
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-from providers.polymarket.adapter import PolymarketAdapter, PolymarketError, MarketSummary
-from core.security import get_secret_store
+
+from providers.polymarket.adapter import MarketSummary, PolymarketAdapter, PolymarketError
 
 logger = logging.getLogger("orion.discovery")
 
@@ -67,7 +65,7 @@ ECONOMY_KEYWORDS = (
     "employment",
     "payroll",
     "inflation",
-);
+)
 
 GEOPOLITICS_KEYWORDS = (
     "war",
@@ -75,7 +73,7 @@ GEOPOLITICS_KEYWORDS = (
     "election",
     "geopolit",
     "referendum",
-);
+)
 
 POLITICS_KEYWORDS = (
     "president",
@@ -84,7 +82,7 @@ POLITICS_KEYWORDS = (
     "election",
     "primaries",
     "debate",
-);
+)
 
 OTHER_KEYWORDS = (
     "metals",
@@ -100,7 +98,7 @@ def _classify_market(question: str, slug: str) -> str:
     s_lower = slug.lower()
 
     # Check crypto first (highest priority)
-    for symbol, words in CRYPTO_KEYWORDS.items():
+    for _symbol, words in CRYPTO_KEYWORDS.items():
         if any(word in q_lower or word in s_lower for word in words):
             return "CRYPTO"
 
@@ -127,27 +125,26 @@ def _classify_market(question: str, slug: str) -> str:
     return "OTHER"
 
 
-def _extract_assets(question: str, slug: str) -> List[str]:
+def _extract_assets(question: str, slug: str) -> list[str]:
     """Extract crypto asset symbols from question/slug."""
     assets = []
     q_lower = question.lower()
     s_lower = slug.lower()
 
-    for symbol, words in CRYPTO_KEYWORDS.items():
+    for _symbol, words in CRYPTO_KEYWORDS.items():
         if any(word in q_lower or word in s_lower for word in words):
-            assets.append(symbol)
+            assets.append(_symbol)
 
     return assets
 
 
 # ─── Market Discovery ─────────────────────────────────────────────
 
-
 async def discover_markets(
     limit: int = 50,
     closed: bool = False,
-    adapter: Optional[PolymarketAdapter] = None,
-) -> List[Dict[str, Any]]:
+    adapter: PolymarketAdapter | None = None,
+) -> list[dict[str, Any]]:
     """Discover active Markets from Polymarket Gamma API.
 
     Returns normalized market dicts with classification, asset extraction,
@@ -175,7 +172,6 @@ async def discover_markets(
         - assets extracted from question/slug
     """
     _adapter = adapter or PolymarketAdapter()
-    settings = get_settings()
 
     try:
         markets_summary = await _adapter.list_markets(
@@ -188,7 +184,7 @@ async def discover_markets(
         logger.error(f"Unexpected error during market discovery: {e}")
         return []
 
-    normalized: List[Dict[str, Any]] = []
+    normalized: list[dict[str, Any]] = []
 
     for summary in markets_summary:
         try:
@@ -241,26 +237,17 @@ async def discover_markets(
         m.get("liquidity") or 0,
     ))
 
-    logger.info(f"Discovered {len(normalized)} markets (active={sum(1 for m in normalized if m['active'])})")
+    _count = sum(1 for m in normalized if m["active"])
+    logger.info(f"Discovered {len(normalized)} markets (active={_count})")
     return normalized
 
 
-def _normalize_market(summary: MarketSummary) -> Optional[Dict[str, Any]]:
+def _normalize_market(summary: MarketSummary) -> dict[str, Any] | None:
     """Normalize a Gamma MarketSummary into a dict with core fields."""
     if not isinstance(summary, MarketSummary):
         return None
 
-    # Parse outcome prices — Gamma returns these as JSON-encoded strings
-    yes_price = None
-    no_price = None
-    outcomes: List[str] = []
-
-    # Try to extract yes/no prices from outcomePrices
-    # outcomePrices structure varies; we use the _parse_jsonish helper pattern
-    import json
-    raw_outcome_prices = summary.token_ids  # placeholder; actual from outcomePrices
-
-    # We'll build a minimal dict from what's available
+    # Build a minimal dict from what's available
     return {
         "id": summary.id,
         "condition_id": summary.id,
@@ -276,14 +263,14 @@ def _normalize_market(summary: MarketSummary) -> Optional[Dict[str, Any]]:
     }
 
 
-def _parse_end_time(end_date: Optional[str]) -> Optional[datetime]:
+def _parse_end_time(end_date: str | None) -> datetime | None:
     """Parse end_date string into a timezone-aware datetime."""
     if not end_date:
         return None
     try:
         # Polymarket endDate format: ISO 8601 or similar
         dt = datetime.fromisoformat(end_date.replace("Z", "+00:00"))
-        return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+        return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
     except (ValueError, TypeError):
         logger.warning(f"Could not parse end_date: {end_date}")
         return None
@@ -293,8 +280,8 @@ def _parse_end_time(end_date: Optional[str]) -> Optional[datetime]:
 
 def get_active_markets(
     limit: int = 50,
-    adapter: Optional[PolymarketAdapter] = None,
-) -> List[Dict[str, Any]]:
+    adapter: PolymarketAdapter | None = None,
+) -> list[dict[str, Any]]:
     """Synchronous wrapper — returns only active (open) markets."""
     return asyncio.run(discover_markets(limit=limit, closed=False, adapter=adapter))
 
@@ -302,8 +289,8 @@ def get_active_markets(
 def get_markets_by_category(
     category: str,
     limit: int = 50,
-    adapter: Optional[PolymarketAdapter] = None,
-) -> List[Dict[str, Any]]:
+    adapter: PolymarketAdapter | None = None,
+) -> list[dict[str, Any]]:
     """Return markets filtered by category."""
     all_markers = asyncio.run(discover_markets(limit=limit, adapter=adapter))
     return [m for m in all_markers if m.get("category") == category]

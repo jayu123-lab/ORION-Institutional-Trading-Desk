@@ -18,7 +18,7 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger("orion.secretstore")
 
@@ -38,17 +38,19 @@ class SecretStoreResult:
 class SecretType:
     """Typed secret categories for proper handling."""
 
-    GAMMA_API_KEY = "gamma_api_key"
-    CLOB_TOKEN = "clob_token"
-    WS_TOKEN = "ws_token"
-    GENERIC = "generic"
+    GAMMA_API_KEY = "gamma_api_key"  # noqa: S105
+    CLOB_TOKEN = "clob_token"  # noqa: S105
+    WS_TOKEN = "ws_token"  # noqa: S105
+    GENERIC = "generic"  # noqa: S105
 
 
 class SecretStoreABC(ABC):
     """Abstract base for secret storage implementations."""
 
     @abstractmethod
-    def store_secret(self, secret_type: str, value: str, metadata: dict[str, Any] | None = None) -> SecretStoreResult:
+    def store_secret(
+        self, secret_type: str, value: str, metadata: dict[str, Any] | None = None
+    ) -> SecretStoreResult:
         """Store a secret. Returns result with success flag and partial fingerprint."""
         pass
 
@@ -91,9 +93,12 @@ class WindowsCredentialStore(SecretStoreABC):
         """Generate a credential key for the given secret type."""
         return f"orion_{secret_type}"
 
-    def store_secret(self, secret_type: str, value: str, metadata: dict[str, Any] | None = None) -> SecretStoreResult:
+    def store_secret(
+        self, secret_type: str, value: str, metadata: dict[str, Any] | None = None
+    ) -> SecretStoreResult:
         if not self._available:
-            return SecretStoreResult(success=False, error="Windows Credential Manager not available")
+            err = "Windows Credential Manager not available"
+            return SecretStoreResult(success=False, error=err)
         try:
             key = self._cred_key(secret_type)
             self._cred.set_key_credential(target=key, username="ORION", password=value)
@@ -110,7 +115,8 @@ class WindowsCredentialStore(SecretStoreABC):
 
     def retrieve_secret(self, secret_type: str) -> SecretStoreResult:
         if not self._available:
-            return SecretStoreResult(success=False, error="Windows Credential Manager not available")
+            err = "Windows Credential Manager not available"
+            return SecretStoreResult(success=False, error=err)
         try:
             key = self._cred_key(secret_type)
             cred = self._cred.get_key_credential(target=key, username="ORION")
@@ -128,7 +134,8 @@ class WindowsCredentialStore(SecretStoreABC):
 
     def clear_secret(self, secret_name: str) -> SecretStoreResult:
         if not self._available:
-            return SecretStoreResult(success=False, error="Windows Credential Manager not available")
+            err = "Windows Credential Manager not available"
+            return SecretStoreResult(success=False, error=err)
         try:
             key = self._cred_key(secret_name)
             self._cred.delete_key_credential(target=key)
@@ -157,7 +164,9 @@ class EnvFallbackSecretStore(SecretStoreABC):
     This class reads from os.environ only — no file writing.
     """
 
-    def store_secret(self, secret_type: str, value: str, metadata: dict[str, Any] | None = None) -> SecretStoreResult:
+    def store_secret(
+        self, secret_type: str, value: str, metadata: dict[str, Any] | None = None
+    ) -> SecretStoreResult:
         # .env fallback: set the env var in the current process only
         # Never write to .env file from the app
         env_name = f"ORION_{secret_type.upper()}"

@@ -45,18 +45,31 @@ class Settings(BaseSettings):
     # Multi-asset feeds (see docs/DATA_SOURCES.md)
     orion_yahoo_enabled: bool = True  # indices/commodities/stocks/FX/rates (unofficial API)
     orion_coinbase_enabled: bool = True  # crypto spot majors via public exchange ticker
-    orion_simulated_enabled: bool = False  # dev-only fallback, always tagged SIMULATED
+    orion_simulated_enabled: bool = False  # dev-only fallback, always tagged SIMULAT
 
-    # Event bus: empty → in-process InMemoryEventBus; redis://... → RedisEventBus
-    # (falls back to InMemory with a warning if the server is unreachable)
-    orion_redis_url: str = ""
+    # ── Neural Strategy Settings ──────────────────────────────────────
+    orion_neural_enabled: bool = True  # Activar/desactivar cerebro neural
+    orion_sentiment_source: str = "fear_greed"  # fear_greed, twitter, news
+    orion_technical_indicators: str = "rsi,macd,bb"  # Comma-separated list
+    orion_min_profit_factor: float = 1.5  # Profit factor mínimo
+    orion_min_win_rate: float = 50.0  # Win rate mínimo (%)
+    orion_min_score: float = 60.0  # Score mínimo (0-100) para operar
+    orion_target_markets: str = "gold,btc,eth,us500"  # Mercados objetivo (comma-sep)
+    orion_spread_strategy: bool = True  # Estrategia spread Polymarket
+    orion_spread_markets: str = "polymarket"  # Mercados para spread
+    orion_heartbeat_interval: int = 5  # Heartbeat WS en segundos
+    orion_neural_score_threshold: float = 70.0  # Umbral de decisión
+
+    # ── Connector Settings ────────────────────────────────────────────
+    orion_faro_api_key: str = ""  # API Key Faro
+    orion_polymarket_ws_url: str = ""  # URL WS Polymarket (override default)
+
+    # ── Broker Settings ───────────────────────────────────────────────
+    orion_binance_api_key: str = ""  # API Key Binance
+    orion_binance_secret_key: str = ""  # Secret Key Binance
 
     # Paper account (PAPER mode only)
     orion_starting_equity: float = 100_000.0
-
-    polymarket_gamma_base_url: str = "https://gamma-api.polymarket.com"
-    polymarket_clob_base_url: str = "https://clob.polymarket.com"
-    polymarket_ws_url: str = "wss://ws-subscriptions-clob.polymarket.com/ws/market"
 
     @property
     def cors_origins(self) -> list[str]:
