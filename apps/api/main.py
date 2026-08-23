@@ -1,4 +1,4 @@
-"""ORION API entrypoint.
+﻿"""ORION API entrypoint.
 
 Run: uvicorn apps.api.main:app --reload --port 8000
 """
@@ -19,7 +19,7 @@ from core.memory.database import init_db
 from core.memory.models import Asset
 from providers.tradingview.webhook import router as tv_router
 
-from .routers import chat, desk, ideas, market, orders, system
+from .routers import analytics, chat, desk, ideas, market, orders, system
 
 
 @asynccontextmanager
@@ -100,7 +100,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for router_module in (system, market, chat, desk, ideas, orders):
+for router_module in (system, market, chat, desk, ideas, orders, analytics):
     app.include_router(router_module.router)
 app.include_router(tv_router)
 
