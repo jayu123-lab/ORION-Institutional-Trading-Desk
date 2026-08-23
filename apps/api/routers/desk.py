@@ -7,7 +7,6 @@ from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
 from apps.api.deps import get_db
-from apps.api.routers.chat import responders
 from core.memory.models import Analysis, MacroEvent, NewsItem
 
 router = APIRouter(prefix="/api/v1", tags=["desk"])
@@ -55,22 +54,11 @@ def latest_debates(asset: str, limit: int = 5, session: Session = Depends(get_db
 
 
 @router.get("/agents")
-def agents_status(session: Session = Depends(get_db)) -> list[dict]:
-    out = []
-    for name in sorted(responders()):
-        last = session.execute(
-            select(Analysis).where(Analysis.agent == name).order_by(desc(Analysis.ts)).limit(1)
-        ).scalar_one_or_none()
-        out.append(
-            {
-                "agent": name,
-                "last_analysis": str(last.ts) if last else None,
-                "stance": last.stance if last else None,
-                "confidence": last.confidence if last else None,
-                "summary": (last.output_summary[:160] if last else None),
-            }
-        )
-    return out
+def agents_status() -> list[dict]:
+    """Registry roster + honest dynamic status (never fabricated)."""
+    from apps.api.routers.cio import get_registry
+
+    return get_registry().to_list()
 
 
 @router.get("/news")

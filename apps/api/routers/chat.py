@@ -35,16 +35,20 @@ class ChatOut(ChatIn):
     id: int
     author: str
     ts: str
+    cio: dict | None = None  # rich payload when the ORION CIO handled the message
 
 
 @router.post("", response_model=ChatOut, status_code=201)
-def send_message(msg: ChatIn, session: Session = Depends(get_db)) -> ChatOut:
+async def send_message(msg: ChatIn, session: Session = Depends(get_db)) -> ChatOut:
     mentions = re.findall(r"@(\w[\w-]*)", msg.content)
     user_row = ChatMessage(room=msg.room, author="user", content=msg.content, mentions=mentions)
     session.add(user_row)
-    session.flush()
+    # Commit immediately: SQLite allows a single writer. Holding this INSERT
+    # open across the orchestrator run deadlocks every other persist.
+    session.commit()
 
     reply_text: str
+    cio_result: dict | None = None
     if mentions:
         target = mentions[0]
         responder = responders().get(target)
@@ -57,9 +61,17 @@ def send_message(msg: ChatIn, session: Session = Depends(get_db)) -> ChatOut:
             reply_text = reply.content
             author = reply.agent
     else:
-        cio = responders()["orion-cio"]
-        reply_text = cio.respond(msg.content, session).content
+        # No @mention → the ORION CIO owns the message end-to-end.
+        from apps.api.routers.cio import get_orchestrator, get_registry
+
+        result = await get_orchestrator().handle(msg.content)
+        reply_text = result["reply"]
         author = "orion-cio"
+        cio_result = result
+        registry = get_registry()
+        for entry in result.get("activity", []):
+            if entry.get("status") == "ok" and entry.get("agent") != "orion-cio":
+                registry.record_run(entry["agent"])
 
     bot_row = ChatMessage(room=msg.room, author=author, content=reply_text)
     session.add(bot_row)
@@ -71,6 +83,7 @@ def send_message(msg: ChatIn, session: Session = Depends(get_db)) -> ChatOut:
         author="user",
         content=msg.content,
         ts=str(utcnow()),
+        cio=cio_result,
     )
 
 

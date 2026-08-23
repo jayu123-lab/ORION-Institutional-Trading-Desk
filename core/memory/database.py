@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -26,7 +26,21 @@ def get_engine() -> Engine:
     _ensure_sqlite_dir(url)
     kwargs: dict = {"future": True}
     if url.startswith("sqlite"):
-        kwargs["connect_args"] = {"check_same_thread": False}
+        # WAL + busy timeout: the desk writes from several threads/tasks at once
+        # (quote ingestion, debate persistence, CIO analyses) — without this,
+        # concurrent commits raise "database is locked".
+        kwargs["connect_args"] = {"check_same_thread": False, "timeout": 30}
+
+        engine = create_engine(url, **kwargs)
+
+        @event.listens_for(engine, "connect")
+        def _set_sqlite_pragma(dbapi_conn, _record):  # noqa: ANN001
+            cursor = dbapi_conn.cursor()
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA busy_timeout=30000")
+            cursor.close()
+
+        return engine
     return create_engine(url, **kwargs)
 
 

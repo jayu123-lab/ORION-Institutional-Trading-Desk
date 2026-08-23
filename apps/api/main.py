@@ -19,7 +19,7 @@ from core.memory.database import init_db
 from core.memory.models import Asset
 from providers.tradingview.webhook import router as tv_router
 
-from .routers import analytics, chat, desk, ideas, market, orders, system
+from .routers import analytics, chat, cio, desk, ideas, market, orders, system
 
 
 @asynccontextmanager
@@ -119,7 +119,7 @@ def health_alias() -> dict:
     return {"status": "ok", "service": "orion-api", "version": "0.1.0"}
 
 
-for router_module in (system, market, chat, desk, ideas, orders, analytics):
+for router_module in (system, market, chat, cio, desk, ideas, orders, analytics):
     app.include_router(router_module.router)
 app.include_router(tv_router)
 

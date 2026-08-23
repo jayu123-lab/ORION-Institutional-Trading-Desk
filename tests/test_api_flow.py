@@ -10,6 +10,11 @@ fastapi_testclient = pytest.importorskip("fastapi.testclient")
 @pytest.fixture(name="client")
 def api_client(tmp_path, monkeypatch):
     monkeypatch.setenv("ORION_TEST_DATABASE_URL", f"sqlite:///{tmp_path}/api-test.db")
+    # deterministic tests: no background ingestion hitting live providers
+    monkeypatch.setenv("ORION_EMBEDDED_DATA", "false")
+    from core.config import get_settings
+
+    get_settings.cache_clear()
     from apps.api.main import app
     from core.memory.database import init_db
 
