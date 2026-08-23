@@ -25,6 +25,8 @@ from core.memory.models import Alert, Quote, RiskSnapshot, Source, utcnow
 
 logger = logging.getLogger("orion.monitor")
 
+NEWS_INTERVAL_TICKS = 20  # heartbeat ~30s → news cycle cada ~10 min
+
 
 class FeedHealth:
     """Tracks per-provider connection state with exponential backoff."""
@@ -56,6 +58,7 @@ class OrionMonitor:
         self.session_factory = get_session_factory()
         self.bus = get_event_bus()
         self._stop = asyncio.Event()
+        self._tick_count = 0
 
     async def stop(self) -> None:
         self._stop.set()
@@ -68,14 +71,28 @@ class OrionMonitor:
             len(self.symbols),
             [p.name for p in self.providers],
         )
+        await self._news_cycle()  # primer ciclo inmediato al arrancar
         while not self._stop.is_set():
             try:
                 await self.tick()
+                if self._tick_count % NEWS_INTERVAL_TICKS == 0:
+                    await self._news_cycle()
             except Exception:  # noqa: BLE001 - monitor must survive any tick failure
                 logger.exception("tick failed")
             await asyncio.sleep(settings.monitor_heartbeat_seconds)
 
+    async def _news_cycle(self) -> None:
+        from providers.news.rss import ingest_news
+
+        try:
+            inserted = await ingest_news()
+            if inserted:
+                logger.info("news cycle: %s new headlines", inserted)
+        except Exception:  # noqa: BLE001 - news must never kill the monitor
+            logger.exception("news cycle failed")
+
     async def tick(self) -> None:
+        self._tick_count += 1
         for provider in self.providers:
             supported = getattr(provider, "supported", None)
             for symbol in self.symbols:
