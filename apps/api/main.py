@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from core.config import get_settings
 from core.events.bus import get_event_bus
@@ -28,7 +29,15 @@ async def lifespan(app: FastAPI):
     _seed_assets()
     bus = get_event_bus()
     bus.start()
+    ws_task: asyncio.Task | None = None
+    if get_settings().orion_polymarket_ws_embedded:
+        from apps.monitor.polymarket_ws import PolymarketWSMonitor
+
+        monitor = PolymarketWSMonitor()
+        ws_task = asyncio.create_task(monitor.run_forever(), name="polymarket-ws")
     yield
+    if ws_task is not None:
+        ws_task.cancel()
     await bus.stop()
 
 
@@ -86,11 +95,8 @@ app.include_router(tv_router)
 
 
 @app.websocket("/ws/events")
-async def ws_events(websocket) -> None:  # noqa: ANN001 - starlette type
+async def ws_events(websocket: WebSocket) -> None:
     """Broadcast bus events to dashboard clients."""
-    from starlette.websockets import WebSocket, WebSocketDisconnect
-
-    assert isinstance(websocket, WebSocket)
     await websocket.accept()
 
     queue: asyncio.Queue = asyncio.Queue()

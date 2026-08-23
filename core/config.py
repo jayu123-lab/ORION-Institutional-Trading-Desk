@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     monitor_heartbeat_seconds: int = 30
     monitor_quote_staleness_sec: int = 120
 
+    # Embed the Polymarket RTDS WS monitor inside the API process so PRICE_UPDATE
+    # events reach /ws/events without an external bus (single-node local desk).
+    orion_polymarket_ws_embedded: bool = False
+
     # Paper account (PAPER mode only)
     orion_starting_equity: float = 100_000.0
 

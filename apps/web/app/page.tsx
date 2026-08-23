@@ -1,16 +1,7 @@
 "use client";
 
+import { useLiveQuotes, type Transport } from "@/lib/useLiveQuotes";
 import { usePolling } from "@/lib/usePolling";
-
-type Quote = {
-  symbol: string;
-  price?: number | null;
-  bid?: number | null;
-  ask?: number | null;
-  provider?: string;
-  status: string;
-  ts?: string;
-};
 
 type SessionClock = {
   utc: string;
@@ -19,21 +10,27 @@ type SessionClock = {
   next_event: { name: string; at_utc: string | null };
 };
 
+const TRANSPORT_LABEL: Record<Transport, { text: string; cls: string }> = {
+  connecting: { text: "● CONNECTING", cls: "text-[#f59e0b]" },
+  live: { text: "● LIVE WS", cls: "up" },
+  polling: { text: "● POLLING", cls: "text-[#38bdf8]" },
+  offline: { text: "● OFFLINE", cls: "down" },
+};
+
 export default function MarketOverview() {
-  const quotes = usePolling<Quote[]>("/api/v1/market/quotes", 4000);
+  const { quotes, error, transport } = useLiveQuotes(10000);
   const sessions = usePolling<SessionClock>("/api/v1/market/sessions", 10000);
+  const t = TRANSPORT_LABEL[transport];
 
   return (
     <div className="flex flex-col gap-4">
       <div className="panel">
         <div className="panel-title flex items-center justify-between">
           <span>Market Overview · Watchlist</span>
-          <span className="text-[#71809a] normal-case tracking-normal">
-            polling 4s
-          </span>
+          <span className={`normal-case tracking-normal ${t.cls}`}>{t.text}</span>
         </div>
-        {quotes.error ? (
-          <p className="p-4 text-[#ef4444]">API offline — {quotes.error}</p>
+        {error ? (
+          <p className="p-4 text-[#ef4444]">API offline — {error}</p>
         ) : (
           <table className="w-full text-[12px]">
             <thead className="text-[#71809a] border-b border-[#1e2936]">
@@ -47,7 +44,7 @@ export default function MarketOverview() {
               </tr>
             </thead>
             <tbody>
-              {(quotes.data ?? []).map((q) => (
+              {quotes.map((q) => (
                 <tr key={q.symbol} className="border-b border-[#141c28] hover:bg-[#141c28]">
                   <td className="px-3 py-1.5 font-bold">{q.symbol}</td>
                   <td className="px-3 py-1.5 text-right tabular-nums">

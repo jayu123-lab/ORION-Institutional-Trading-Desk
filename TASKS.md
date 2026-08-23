@@ -49,7 +49,8 @@ Convención: `[P#]` fase, `[agent]` responsable sugerido. Marcar `[x]` al cerrar
 - [x] [P1][api] Chat multiagente con @routing y respuestas desde datos reales
 - [x] [P1][monitor] orion-monitor loop (heartbeat, quotes, alerts, feed health)
 - [x] [P1][web] Skeleton dashboard oscuro + desk room chat
-- [ ] [P2][web] WebSocket client para precios live
+- [x] [P2][web] WebSocket client para precios live (/ws/events + fallback polling,
+      indicador de transporte LIVE WS/POLLING/OFFLINE)
 - [ ] [P4][web] Pantallas GOLD/CRYPTO/EQUITIES/POLYMARKET/BACKTEST completas
 
 ## Calidad
