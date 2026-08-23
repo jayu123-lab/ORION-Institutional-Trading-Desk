@@ -12,7 +12,9 @@ function Test-OrionHealth {
 
 if (-not (Test-OrionHealth)) {
   $apiLog = Join-Path $LogDir "launcher-api.log"
-  Start-Process -FilePath (Join-Path $Repo ".venv\Scripts\python.exe") `
+  $python = Join-Path $Repo ".venv\Scripts\python.exe"
+  if (-not (Test-Path -LiteralPath $python)) { $python = (Get-Command python.exe).Source }
+  Start-Process -FilePath $python `
     -ArgumentList "-m uvicorn apps.api.main:app --host 127.0.0.1 --port 8000" `
     -WorkingDirectory $Repo -RedirectStandardOutput $apiLog -RedirectStandardError (Join-Path $LogDir "launcher-api.err.log") -WindowStyle Hidden
 }
