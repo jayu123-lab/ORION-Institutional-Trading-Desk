@@ -1,4 +1,4 @@
-﻿"""ORION API entrypoint.
+"""ORION API entrypoint.
 
 Run: uvicorn apps.api.main:app --reload --port 8000
 """
@@ -30,12 +30,24 @@ async def lifespan(app: FastAPI):
     bus = get_event_bus()
     bus.start()
     ws_task: asyncio.Task | None = None
+    data_task: asyncio.Task | None = None
+    data_service = None
+    if get_settings().orion_embedded_data:
+        from apps.api.background import EmbeddedDataService
+
+        data_service = EmbeddedDataService()
+        data_task = asyncio.create_task(data_service.run_forever(), name="embedded-market-data")
+
     if get_settings().orion_polymarket_ws_embedded:
         from apps.monitor.polymarket_ws import PolymarketWSMonitor
 
         monitor = PolymarketWSMonitor()
         ws_task = asyncio.create_task(monitor.run_forever(), name="polymarket-ws")
     yield
+    if data_service is not None:
+        await data_service.stop()
+    if data_task is not None:
+        data_task.cancel()
     if ws_task is not None:
         ws_task.cancel()
     await bus.stop()
