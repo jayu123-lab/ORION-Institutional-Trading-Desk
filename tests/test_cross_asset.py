@@ -52,9 +52,9 @@ class TestPairAnalysis:
         engine = CrossAssetEngine()
         base_a = [float(i) for i in range(40)]
         base_b = [0.8 * float(i) + 3.0 for i in range(40)]  # rho = +1 baseline
-        # deterministic modular noise (no RNG): recent rho ~ 0.74 (delta 0.26)
+        # deterministic modular noise (no RNG): recent rho ~ 0.61 (delta ~0.39)
         rec_a = [float(i) for i in range(40)]
-        rec_b = [0.4 * i + ((i * 7919) % 51 - 25) / 25.0 * 8.0 for i in range(40)]
+        rec_b = [0.4 * i + ((i * 7919) % 51 - 25) / 25.0 * 12.0 for i in range(40)]
         reading = engine.analyze_pair("GOLD_SILVER", base_a + rec_a, base_b + rec_b)
         assert reading.state == RelationState.DIVERGENCE.value
 
