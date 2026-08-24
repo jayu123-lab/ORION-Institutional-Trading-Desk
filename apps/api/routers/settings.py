@@ -27,6 +27,11 @@ from providers.faro.client import (
     read_outbox,
     save_faro_settings,
 )
+from providers.voice.client import (
+    VOICE_PRESETS,
+    load_voice_settings,
+    save_voice_settings,
+)
 
 logger = logging.getLogger("orion.settings")
 router = APIRouter(prefix="/api/v1/settings", tags=["settings"])
@@ -242,3 +247,60 @@ async def faro_test(payload: FaroTestIn, request: Request) -> dict:
     )
     result = FaroClient().send(message)
     return result.to_dict()
+
+
+# ------------------------------------------------------------ Voice IA (OpenAI) block
+@router.get("/connections/voice/status")
+async def voice_status() -> dict:
+    store = get_secret_store()
+    key_result = store.retrieve_secret(SecretType.OPENAI_API_KEY)
+    settings = load_voice_settings()
+    return {
+        "voice": {
+            "configured": key_result.success,
+            "fingerprint": key_result.value if key_result.success else None,
+            "voice_preset": settings.voice_preset,
+            "model": settings.model,
+            "available_presets": list(VOICE_PRESETS),
+        }
+    }
+
+
+class VoiceConfigureIn(BaseModel):
+    api_key: str | None = None
+    voice_preset: str | None = None
+    model: str | None = None
+
+
+@router.post("/connections/voice/configure")
+async def voice_configure(payload: VoiceConfigureIn, request: Request) -> dict:
+    _check_localhost(request)
+    fingerprint = None
+    if payload.api_key:
+        res = get_secret_store().store_secret(SecretType.OPENAI_API_KEY, payload.api_key)
+        if not res.success:
+            raise HTTPException(status_code=400, detail=res.error)
+        fingerprint = res.value
+
+    patch: dict = {}
+    if payload.voice_preset is not None:
+        if payload.voice_preset not in VOICE_PRESETS:
+            raise HTTPException(status_code=400, detail=f"unknown voice preset: {payload.voice_preset}")
+        patch["voice_preset"] = payload.voice_preset
+    if payload.model is not None:
+        patch["model"] = payload.model
+    settings = save_voice_settings(patch) if patch else load_voice_settings()
+
+    return {
+        "status": "CONFIGURED",
+        "fingerprint": fingerprint,
+        "voice_preset": settings.voice_preset,
+        "model": settings.model,
+    }
+
+
+@router.post("/connections/voice/remove")
+async def voice_remove(request: Request) -> dict:
+    _check_localhost(request)
+    res = get_secret_store().clear_secret(SecretType.OPENAI_API_KEY)
+    return {"status": "REMOVED" if res.success else "ERROR", "message": res.error or "OpenAI voice API key cleared"}

@@ -42,6 +42,7 @@ class SecretType:
     CLOB_TOKEN = "clob_token"  # noqa: S105
     WS_TOKEN = "ws_token"  # noqa: S105
     FARO_API_KEY = "faro_api_key"  # noqa: S105
+    OPENAI_API_KEY = "openai_api_key"  # noqa: S105
     GENERIC = "generic"  # noqa: S105
 
 

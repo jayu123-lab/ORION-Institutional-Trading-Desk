@@ -154,7 +154,174 @@ GLOSSARY: dict[str, dict[str, str]] = {
     "session low": {"es": "mínimo de sesión", "en": "session low",
                     "fr": "plus bas de session", "de": "Sitzungstief",
                     "it": "minimo di sessione", "pt": "mínima da sessão"},
+    "desk read": {"es": "lectura de mesa", "en": "desk read",
+                  "fr": "lecture du bureau", "de": "Desk-Lesart",
+                  "it": "lettura della scrivania", "pt": "leitura da mesa"},
+    "bias:": {"es": "sesgo:", "en": "bias:", "fr": "biais:",
+              "de": "Bias:", "it": "bias:", "pt": "viés:"},
+    "decision:": {"es": "decisión:", "en": "decision:", "fr": "décision:",
+                  "de": "Entscheidung:", "it": "decisione:", "pt": "decisão:"},
+    "confidence:": {"es": "confianza:", "en": "confidence:", "fr": "confiance:",
+                    "de": "Konfidenz:", "it": "fiducia:", "pt": "confiança:"},
+    "market state:": {"es": "estado del mercado:", "en": "market state:",
+                       "fr": "état du marché:", "de": "Marktzustand:",
+                       "it": "stato del mercato:", "pt": "estado do mercado:"},
+    "facts:": {"es": "hechos:", "en": "facts:", "fr": "faits:",
+               "de": "Fakten:", "it": "fatti:", "pt": "fatos:"},
+    "inferences (per specialist):": {
+        "es": "inferencias (por especialista):", "en": "inferences (per specialist):",
+        "fr": "inférences (par spécialiste):", "de": "Schlussfolgerungen (pro Spezialist):",
+        "it": "inferenze (per specialista):", "pt": "inferências (por especialista):"},
+    "risk:": {"es": "riesgo:", "en": "risk:", "fr": "risque:",
+              "de": "Risiko:", "it": "rischio:", "pt": "risco:"},
+    "plan:": {"es": "plan:", "en": "plan:", "fr": "plan:",
+              "de": "Plan:", "it": "piano:", "pt": "plano:"},
+    "data gaps:": {"es": "vacíos de datos:", "en": "data gaps:",
+                   "fr": "lacunes de données:", "de": "Datenlücken:",
+                   "it": "lacune di dati:", "pt": "lacunas de dados:"},
+    "sessions active:": {"es": "sesiones activas:", "en": "sessions active:",
+                          "fr": "sessions actives:", "de": "Aktive Sitzungen:",
+                          "it": "sessioni attive:", "pt": "sessões ativas:"},
+    "missing inputs": {"es": "datos faltantes", "en": "missing inputs",
+                        "fr": "données manquantes", "de": "Fehlende Eingaben",
+                        "it": "dati mancanti", "pt": "dados faltantes"},
+    "regime=": {"es": "régimen=", "en": "regime=", "fr": "régime=",
+                "de": "Regime=", "it": "regime=", "pt": "regime="},
+    "volatility=": {"es": "volatilidad=", "en": "volatility=", "fr": "volatilité=",
+                    "de": "Volatilität=", "it": "volatilità=", "pt": "volatilidade="},
+    "risk_mode=": {lang: "risk_mode=" for lang in LANGUAGES},
+    "data_quality=": {lang: "data_quality=" for lang in LANGUAGES},
+    "no trade — veto active": {
+        "es": "no operar — veto activo", "en": "no trade — veto active",
+        "fr": "pas de trade — veto actif", "de": "kein Handel — Veto aktiv",
+        "it": "non tradare — veto attivo", "pt": "não operar — veto ativo"},
+    "re-evaluate after conditions clear": {
+        "es": "reevaluar cuando las condiciones se despejen",
+        "en": "re-evaluate after conditions clear",
+        "fr": "réévaluer une fois les conditions clarifiées",
+        "de": "neu bewerten, sobald sich die Bedingungen klären",
+        "it": "rivalutare dopo che le condizioni si chiariscono",
+        "pt": "reavaliar após as condições se esclarecerem"},
+    "doctrine gate": {"es": "puerta de doctrina", "en": "doctrine gate",
+                       "fr": "portail de doctrine", "de": "Doktrin-Gate",
+                       "it": "cancello dottrinale", "pt": "portão de doutrina"},
+    "a bias is not an entry": {
+        "es": "un sesgo no es una entrada", "en": "a bias is not an entry",
+        "fr": "un biais n'est pas une entrée", "de": "ein Bias ist kein Einstieg",
+        "it": "un bias non è un ingresso", "pt": "um viés não é uma entrada"},
+    "no edge worth institutional risk right now": {
+        "es": "ninguna ventaja justifica riesgo institucional ahora mismo",
+        "en": "no edge worth institutional risk right now",
+        "fr": "aucun avantage ne justifie un risque institutionnel actuellement",
+        "de": "derzeit kein Vorteil, der institutionelles Risiko rechtfertigt",
+        "it": "nessun vantaggio giustifica rischio istituzionale ora",
+        "pt": "nenhuma vantagem justifica risco institucional agora"},
+    "preliminary": {"es": "preliminar", "en": "preliminary", "fr": "préliminaire",
+                    "de": "vorläufig", "it": "preliminare", "pt": "preliminar"},
+    "setup (internal label, not advice)": {
+        "es": "setup (etiqueta interna, no es consejo)",
+        "en": "setup (internal label, not advice)",
+        "fr": "setup (étiquette interne, pas un conseil)",
+        "de": "Setup (interne Bezeichnung, keine Beratung)",
+        "it": "setup (etichetta interna, non è un consiglio)",
+        "pt": "setup (rótulo interno, não é conselho)"},
+    "reference entry zone": {
+        "es": "zona de entrada de referencia", "en": "reference entry zone",
+        "fr": "zone d'entrée de référence", "de": "Referenz-Einstiegszone",
+        "it": "zona di ingresso di riferimento", "pt": "zona de entrada de referência"},
+    "structural invalidation": {
+        "es": "invalidación estructural", "en": "structural invalidation",
+        "fr": "invalidation structurelle", "de": "strukturelle Invalidierung",
+        "it": "invalidazione strutturale", "pt": "invalidação estrutural"},
+    "activation: only after human approval + fresh quote re-check": {
+        "es": "activación: solo tras aprobación humana + reverificación de cotización",
+        "en": "activation: only after human approval + fresh quote re-check",
+        "fr": "activation : uniquement après approbation humaine + revérification de la cotation",
+        "de": "Aktivierung: nur nach menschlicher Freigabe + erneuter Kursprüfung",
+        "it": "attivazione: solo dopo approvazione umana + riverifica della quotazione",
+        "pt": "ativação: somente após aprovação humana + reverificação da cotação"},
+    "none — all checked fields verified": {
+        "es": "ninguno — todos los campos verificados", "en": "none — all checked fields verified",
+        "fr": "aucun — tous les champs vérifiés", "de": "keine — alle geprüften Felder verifiziert",
+        "it": "nessuno — tutti i campi verificati", "pt": "nenhum — todos os campos verificados"},
+    "none (thin liquidity caution)": {
+        "es": "ninguno (precaución por liquidez baja)",
+        "en": "none (thin liquidity caution)",
+        "fr": "aucun (prudence liquidité faible)",
+        "de": "keine (Vorsicht wegen geringer Liquidität)",
+        "it": "nessuno (cautela per liquidità sottile)",
+        "pt": "nenhum (cautela por liquidez baixa)"},
+    "gate": {"es": "puerta", "en": "gate", "fr": "portail",
+             "de": "Gate", "it": "cancello", "pt": "portão"},
+    "veto active": {"es": "veto activo", "en": "veto active", "fr": "veto actif",
+                    "de": "Veto aktiv", "it": "veto attivo", "pt": "veto ativo"},
+    "buy": {"es": "compra", "en": "buy", "fr": "achat",
+            "de": "Kauf", "it": "acquisto", "pt": "compra"},
+    "sell": {"es": "venta", "en": "sell", "fr": "vente",
+             "de": "Verkauf", "it": "vendita", "pt": "venda"},
+    "long": {"es": "largo", "en": "long", "fr": "long",
+             "de": "Long", "it": "long", "pt": "comprado"},
+    "short": {"es": "corto", "en": "short", "fr": "court",
+              "de": "Short", "it": "short", "pt": "vendido"},
+    "neutral": {"es": "neutral", "en": "neutral", "fr": "neutre",
+                "de": "neutral", "it": "neutrale", "pt": "neutro"},
+    "bullish": {"es": "alcista", "en": "bullish", "fr": "haussier",
+                "de": "bullisch", "it": "rialzista", "pt": "altista"},
+    "bearish": {"es": "bajista", "en": "bearish", "fr": "baissier",
+                "de": "bärisch", "it": "ribassista", "pt": "baixista"},
+    "trending": {"es": "tendencial", "en": "trending", "fr": "tendanciel",
+                 "de": "trendig", "it": "in tendenza", "pt": "em tendência"},
+    "ranging": {"es": "en rango", "en": "ranging", "fr": "en range",
+                "de": "in Spanne", "it": "in range", "pt": "em faixa"},
+    "normal": {"es": "normal", "en": "normal", "fr": "normal",
+               "de": "normal", "it": "normale", "pt": "normal"},
+    "moderate": {"es": "moderado", "en": "moderate", "fr": "modéré",
+                 "de": "moderat", "it": "moderato", "pt": "moderado"},
+    "strong": {"es": "fuerte", "en": "strong", "fr": "fort",
+               "de": "stark", "it": "forte", "pt": "forte"},
+    "weak": {"es": "débil", "en": "weak", "fr": "faible",
+             "de": "schwach", "it": "debole", "pt": "fraco"},
+    "approved": {"es": "aprobado", "en": "approved", "fr": "approuvé",
+                 "de": "genehmigt", "it": "approvato", "pt": "aprovado"},
+    "rejected": {"es": "rechazado", "en": "rejected", "fr": "rejeté",
+                 "de": "abgelehnt", "it": "rifiutato", "pt": "rejeitado"},
+    "pending": {"es": "pendiente", "en": "pending", "fr": "en attente",
+                "de": "ausstehend", "it": "in sospeso", "pt": "pendente"},
+    "confirmed": {"es": "confirmado", "en": "confirmed", "fr": "confirmé",
+                  "de": "bestätigt", "it": "confermato", "pt": "confirmado"},
+    "armed": {"es": "armado", "en": "armed", "fr": "armé",
+              "de": "scharfgeschaltet", "it": "armato", "pt": "armado"},
+    "invalidated": {"es": "invalidado", "en": "invalidated", "fr": "invalidé",
+                    "de": "invalidiert", "it": "invalidato", "pt": "invalidado"},
+    "live": {"es": "en vivo", "en": "live", "fr": "en direct",
+             "de": "live", "it": "in diretta", "pt": "ao vivo"},
+    "stale": {"es": "desactualizado", "en": "stale", "fr": "obsolète",
+              "de": "veraltet", "it": "obsoleto", "pt": "desatualizado"},
+    "healthy": {"es": "saludable", "en": "healthy", "fr": "sain",
+                "de": "gesund", "it": "sano", "pt": "saudável"},
+    "operational": {"es": "operativo", "en": "operational", "fr": "opérationnel",
+                     "de": "betriebsbereit", "it": "operativo", "pt": "operacional"},
+    "degraded": {"es": "degradado", "en": "degraded", "fr": "dégradé",
+                 "de": "beeinträchtigt", "it": "degradato", "pt": "degradado"},
+    "below": {"es": "por debajo", "en": "below", "fr": "en dessous",
+              "de": "unterhalb", "it": "sotto", "pt": "abaixo"},
+    "above": {"es": "por encima", "en": "above", "fr": "au-dessus",
+              "de": "oberhalb", "it": "sopra", "pt": "acima"},
+    "near": {"es": "cerca de", "en": "near", "fr": "près de",
+             "de": "nahe", "it": "vicino a", "pt": "perto de"},
 }
+
+# Bare uppercase tokens that must be preserved as tickers/symbols and never
+# passed through the glossary, even though they match the token regex below.
+_KNOWN_TICKERS = frozenset({
+    "XAUUSD", "XAGUSD", "SI", "HG", "GC",
+    "CL", "BZ", "NG", "ZW", "ZC", "KC",
+    "ES", "NQ", "SPX", "VIX", "DXY",
+    "BTCUSD", "ETHUSD", "XRPUSD", "SOLUSD", "XLM", "HBAR",
+    "BTC", "ETH", "XRP", "SOL",
+    "EURUSD", "GBPUSD", "USDJPY",
+    "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AMD", "NFLX", "JPM", "KO",
+})
 
 # Spanish source phrases that map back to the canonical English terms above.
 _ES_SOURCE_ALIASES: list[tuple[str, str]] = [
@@ -173,7 +340,7 @@ _ES_SOURCE_ALIASES: list[tuple[str, str]] = [
 ]
 
 _TOKEN_RE = re.compile(
-    r"(\$?\b[A-Z]{2,10}(?:USD)?\b(?:[=F])?"   # tickers/symbols XAUUSD GC=F NQ
+    r"(\$?\b[A-Z]{2,10}(?:USD)?\b(?:[=F])?"   # candidate tickers/symbols — filtered in _protect()
     r"|\b\d+(?:[.,]\d+)?\b"                    # numbers/prices
     r"|https?://\S+"                           # URLs
     r"|\b[a-z0-9_-]+@[a-z0-9_-]+\b)"           # ids
@@ -232,7 +399,10 @@ def translate_text(text: str, target_lang: str | None,
         protected: list[str] = []
 
         def _protect(match: re.Match) -> str:
-            protected.append(match.group(0))
+            token = match.group(0)
+            if token.isalpha() and token.isupper() and token not in _KNOWN_TICKERS:
+                return token
+            protected.append(token)
             return _PLACEHOLDER.format(len(protected) - 1)
 
         work = _TOKEN_RE.sub(_protect, text)
@@ -244,7 +414,10 @@ def translate_text(text: str, target_lang: str | None,
             replacement = GLOSSARY.get(canonical, {}).get(target)
             if not replacement or replacement.lower() == phrase.lower():
                 return
-            pattern = re.compile(re.escape(phrase), re.IGNORECASE)
+            escaped = re.escape(phrase)
+            prefix = r"\b" if phrase[0].isalnum() else ""
+            suffix = r"\b" if phrase[-1].isalnum() else ""
+            pattern = re.compile(prefix + escaped + suffix, re.IGNORECASE)
             work, n = pattern.subn(replacement, work)
             rules_applied += n if n else 0
 
@@ -258,9 +431,7 @@ def translate_text(text: str, target_lang: str | None,
             return protected[int(match.group(1))]
 
         final = re.sub(_PLACEHOLDER.format(r"(\d+)"), _restore, work)
-        translated = rules_applied > 0 and target != "es"
-        # For ES target the glossary only adds anchors; treat as untranslated
-        # unless an explicit ES rule differed from the source phrase.
+        translated = rules_applied > 0
         return TranslationResult(final, src, target, rules_applied,
                                  translated=translated)
     except Exception:  # noqa: BLE001 — P23: fallback must be unbreakable

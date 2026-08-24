@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 from apps.api.deps import get_db
 from core.desk.watch import evaluate_watches, list_watches
 from core.memory.database import get_session_factory
-from core.memory.models import Alert, Analysis, NewsItem, Quote
+from core.memory.models import Alert, Analysis, NewsItem, OpportunityCandidate, Quote
 from core.news import filter_relevant_news
 
 router = APIRouter(prefix="/api/v1/command", tags=["command"])
@@ -27,6 +27,22 @@ TICKER_SYMBOLS = (
     "XAUUSD", "NQ", "EURUSD", "GBPUSD",  # priority watch: gold, Nasdaq, EUR, GBP
     "DXY", "US10Y", "VIX", "SPX", "BTCUSD", "XRPUSD",
 )
+
+
+def _latest_relative_volume(session: Session, sym: str) -> float | None:
+    """Real relative-volume reading from the scanner's feature pipeline for
+    this symbol, if one has run recently. Never fabricated — None when the
+    scanner has not produced a candidate for this symbol yet."""
+    row = session.execute(
+        select(OpportunityCandidate)
+        .where(OpportunityCandidate.symbol == sym)
+        .order_by(desc(OpportunityCandidate.ts))
+        .limit(1)
+    ).scalar_one_or_none()
+    if row is None or not row.features:
+        return None
+    rv = row.features.get("relative_volume")
+    return float(rv) if isinstance(rv, (int, float)) else None
 
 
 @router.get("/ticker")
@@ -42,7 +58,10 @@ def ticker(session: Session = Depends(get_db)) -> dict:
             .first()
         )
         if row is None:
-            out.append({"symbol": sym, "price": None, "status": "NOT_AVAILABLE"})
+            out.append({
+                "symbol": sym, "price": None, "status": "NOT_AVAILABLE",
+                "volume": None, "relative_volume": _latest_relative_volume(session, sym),
+            })
             continue
         ts = (
             row.ts_received.replace(tzinfo=UTC)
@@ -72,6 +91,8 @@ def ticker(session: Session = Depends(get_db)) -> dict:
                 "status": status,
                 "ts": ts.isoformat(),
                 "provider": row.provider,
+                "volume": row.volume,
+                "relative_volume": _latest_relative_volume(session, sym),
             }
         )
     return {"ticker": out, "ts": now.isoformat()}

@@ -1,21 +1,59 @@
-MIT License
+ORION INSTITUTIONAL TRADING DESK — LICENCIA PROPIETARIA
 
-Copyright (c) 2026 ORION Institutional Trading Desk contributors
+Copyright (c) 2026 [TU NOMBRE O RAZÓN SOCIAL]. Todos los derechos reservados.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Este repositorio y la totalidad de su contenido (código fuente, documentación,
+configuración, scripts, agentes, capturas y cualquier material asociado — el
+"Software") son propiedad exclusiva del titular de los derechos de autor
+("el Titular") y tienen carácter confidencial. El Software NO se distribuye
+bajo una licencia de código abierto.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+## Acceso autorizado
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+El acceso al Software solo se concede a personas que hayan adquirido una
+licencia de uso directamente del Titular ("Usuario Autorizado"), mediante el
+proceso de compra indicado por el Titular. Recibir acceso al repositorio (por
+invitación como colaborador, descarga de un paquete, o cualquier otro medio)
+implica la aceptación de los términos de esta licencia.
+
+## Lo que sí permite esta licencia
+
+Sujeto al pago correspondiente y mientras la licencia no sea revocada, el
+Titular concede a cada Usuario Autorizado un derecho personal, no exclusivo,
+intransferible y revocable para:
+
+- instalar y ejecutar el Software en sus propios equipos, para su uso personal
+  o interno de investigación y análisis de mercado;
+- modificar una copia privada del Software para su propio uso.
+
+## Lo que esta licencia NO permite
+
+Sin autorización previa y por escrito del Titular, el Usuario Autorizado NO
+puede:
+
+- redistribuir, publicar, sublicenciar, revender, alquilar, ceder o compartir
+  el Software (total o parcialmente, modificado o no) con ningún tercero,
+  incluyendo la publicación del código en repositorios públicos o privados
+  ajenos al Titular;
+- usar el Software, o partes de él, para construir un producto o servicio
+  competidor que se ofrezca a terceros;
+- eliminar o alterar este aviso de licencia en ninguna copia del Software.
+
+Esta licencia no transfiere la propiedad del Software. El Titular se reserva
+todos los derechos no concedidos expresamente aquí.
+
+## Aviso importante — no es un bot ni asesoramiento financiero
+
+El Software es una herramienta de análisis e investigación de mercado. No
+ejecuta operaciones por el usuario, no constituye asesoramiento financiero ni
+recomendación de inversión, y se entrega "TAL CUAL", sin garantía de ningún
+tipo, expresa o implícita, incluyendo garantías de comerciabilidad o idoneidad
+para un propósito particular. El Titular no asume responsabilidad por
+pérdidas o daños derivados del uso del Software. Ver `README.md` para más
+detalle sobre su funcionamiento y limitaciones.
+
+## Incumplimiento
+
+El incumplimiento de estos términos puede suponer la revocación inmediata del
+acceso al Software, sin derecho a reembolso, y acciones legales por parte del
+Titular.

@@ -32,6 +32,7 @@ from .routers import (
     scanner,
     settings as settings_router,
     system,
+    voice,
 )
 
 
@@ -145,6 +146,7 @@ for router_module in (
     analytics,
     scanner,
     settings_router,
+    voice,
 ):
     app.include_router(router_module.router)
 app.include_router(tv_router)

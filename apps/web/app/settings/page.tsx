@@ -8,7 +8,7 @@
 // command/page.tsx) and talks to real backend endpoints only.
 
 import { FormEvent, useEffect, useState } from "react";
-import { apiGet, apiPost } from "@/lib/api";
+import { API_URL, apiGet, apiPost } from "@/lib/api";
 
 type PolymarketStatus = {
   connection: string;
@@ -37,11 +37,20 @@ type FaroOutboxEntry = {
   ts: string;
 };
 
+type VoiceStatus = {
+  configured: boolean;
+  fingerprint: string | null;
+  voice_preset: string;
+  model: string;
+  available_presets: string[];
+};
+
 type Toast = { kind: "ok" | "error"; text: string } | null;
 
 const TABS = [
   { key: "polymarket", label: "CONEXIONES" },
   { key: "faro", label: "FARO" },
+  { key: "voice", label: "VOZ IA" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
 
@@ -82,6 +91,7 @@ export default function SettingsPage() {
 
       {tab === "polymarket" && <PolymarketPanel notify={notify} />}
       {tab === "faro" && <FaroPanel notify={notify} />}
+      {tab === "voice" && <VoicePanel notify={notify} />}
 
       {toast && (
         <div
@@ -382,6 +392,176 @@ function FaroPanel({ notify }: { notify: (k: "ok" | "error", t: string) => void 
           ))}
         </ul>
       </div>
+    </section>
+  );
+}
+
+/* ================================================================ Voz IA */
+
+function VoicePanel({ notify }: { notify: (k: "ok" | "error", t: string) => void }) {
+  const [status, setStatus] = useState<VoiceStatus | null>(null);
+  const [apiKey, setApiKey] = useState("");
+  const [voicePreset, setVoicePreset] = useState("onyx");
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function load() {
+    try {
+      const res = await apiGet<{ voice: VoiceStatus }>("/api/v1/settings/connections/voice/status");
+      setStatus(res.voice);
+      setVoicePreset(res.voice.voice_preset);
+      setLoadError(null);
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "API offline");
+    }
+  }
+
+  async function onSave(e: FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await apiPost("/api/v1/settings/connections/voice/configure", {
+        api_key: apiKey || undefined,
+        voice_preset: voicePreset,
+      });
+      setApiKey("");
+      notify("ok", "Configuración de voz guardada.");
+      await load();
+    } catch (e) {
+      notify("error", e instanceof Error ? e.message : "Error al guardar.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function onRemove() {
+    try {
+      await apiPost("/api/v1/settings/connections/voice/remove", {});
+      notify("ok", "API Key de OpenAI eliminada — ORION vuelve a la voz del navegador.");
+      await load();
+    } catch (e) {
+      notify("error", e instanceof Error ? e.message : "Error al eliminar.");
+    }
+  }
+
+  async function onTest() {
+    setTesting(true);
+    try {
+      const res = await fetch(`${API_URL}/api/v1/voice/speak`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: "Pon la vista en el oro. Esta es la voz de ORION Institutional Trading Desk.",
+          lang: "es",
+        }),
+      });
+      if (!res.ok) {
+        const detail = await res.text();
+        throw new Error(detail || `HTTP ${res.status}`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.onended = () => URL.revokeObjectURL(url);
+      await audio.play();
+      notify("ok", "Reproduciendo voz de prueba…");
+    } catch (e) {
+      notify("error", e instanceof Error ? e.message : "Error al reproducir la voz de prueba.");
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  return (
+    <section className="panel p-3 flex flex-col gap-3">
+      <div className="panel-title !px-0 !pt-0">Voz IA — OpenAI TTS (opcional)</div>
+      <p className="text-[10px] text-[#71809a]">
+        Las alertas de voz del Centro de Mando funcionan ya mismo gratis con la voz del navegador
+        (botón &quot;VOZ&quot; en /command). Configura aquí tu propia API Key de OpenAI para que ORION
+        hable con una voz mucho más natural en su lugar — tiene coste por uso en tu cuenta de OpenAI.
+        Si la key falta o falla una llamada, ORION vuelve automáticamente a la voz del navegador sin
+        que se note.
+      </p>
+
+      {loadError && <p className="text-[10px] text-[#f59e0b]">⚠ {loadError}</p>}
+
+      {status && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1.5 text-[10px]">
+          <StatusRow
+            label="API Key"
+            value={status.configured ? status.fingerprint ?? "CONFIGURADA" : "NO CONFIGURADA"}
+            tone={status.configured ? "green" : "amber"}
+          />
+          <StatusRow label="Voz" value={status.voice_preset} />
+          <StatusRow label="Modelo" value={status.model} />
+        </div>
+      )}
+
+      {!status?.configured && (
+        <p className="text-[10px] text-[#38bdf8] border border-[#38bdf8]/30 rounded px-2 py-1.5 bg-[#0d1b26]">
+          Sin API Key de OpenAI todavía: ORION sigue avisando por voz normalmente, usando la voz
+          gratuita del navegador. En cuanto pegues tu key aquí, pasa a hablar con la voz de OpenAI
+          sin ningún otro cambio.
+        </p>
+      )}
+
+      <form onSubmit={onSave} className="flex flex-col gap-2 border-t border-[#1e2936] pt-3">
+        <Field
+          label="API Key de OpenAI"
+          hint="Se guarda de forma segura — nunca se muestra en texto plano de nuevo"
+          value={apiKey}
+          onChange={setApiKey}
+          placeholder={status?.configured ? "•••• (ya configurada — deja vacío para no cambiarla)" : "sk-…"}
+        />
+        <label className="flex flex-col gap-1">
+          <span className="text-[10px] font-medium text-[#cbd5e1]">Voz</span>
+          <select
+            value={voicePreset}
+            onChange={(e) => setVoicePreset(e.target.value)}
+            className="bg-[#10161f] border border-[#1e2936] rounded px-2.5 py-1.5 text-[11px] outline-none focus:border-[#38bdf8]"
+          >
+            {(status?.available_presets ?? ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]).map((p) => (
+              <option key={p} value={p} className="bg-[#10161f]">
+                {p}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="flex gap-2 mt-1">
+          <button
+            type="submit"
+            disabled={saving}
+            className="rounded border border-[#38bdf8]/60 px-3 py-1.5 text-[10px] text-[#38bdf8]
+                       hover:bg-[#142b3b] disabled:opacity-50"
+          >
+            {saving ? "GUARDANDO…" : "GUARDAR"}
+          </button>
+          <button
+            type="button"
+            onClick={onTest}
+            disabled={testing || !status?.configured}
+            title={!status?.configured ? "Guarda una API Key primero" : undefined}
+            className="rounded border border-[#22c55e]/60 px-3 py-1.5 text-[10px] text-[#22c55e]
+                       hover:bg-[#0f2417] disabled:opacity-50"
+          >
+            {testing ? "REPRODUCIENDO…" : "PROBAR VOZ"}
+          </button>
+          {status?.configured && (
+            <button
+              type="button"
+              onClick={onRemove}
+              className="rounded border border-[#ef4444]/60 px-3 py-1.5 text-[10px] text-[#ef4444] hover:bg-[#29171b]"
+            >
+              ELIMINAR API KEY
+            </button>
+          )}
+        </div>
+      </form>
     </section>
   );
 }

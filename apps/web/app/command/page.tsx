@@ -8,6 +8,8 @@
 import { FormEvent, ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { API_URL } from "@/lib/api";
 import { LANGUAGES, LangCode, useLanguage } from "@/lib/i18n";
+import { buildCioNarrationPhrases, useMarketVoiceAlerts, useVoiceAnnouncer } from "@/lib/voice";
+import OrionCoreScene, { type OrionAssetVolume } from "@/components/OrionCoreScene";
 
 type ActivityEntry = { agent: string; action: string; status: string };
 type SourceRef = { field: string; source: string | null; ts: string | null };
@@ -28,6 +30,8 @@ type TickerRow = {
   price: number | null;
   change_pct: number | null;
   status: string;
+  volume?: number | null;
+  relative_volume?: number | null;
 };
 type Intelligence = {
   latest_news: { title: string; source: string | null; relevance: string | null }[];
@@ -95,6 +99,7 @@ type BootCheck = { label: string; state: "WAIT" | "OK" | "DEGRADED" | "FAIL"; de
 
 export default function CommandCenter() {
   const { lang, setLang, t, applyServerCatalogs } = useLanguage();
+  const voice = useVoiceAnnouncer(lang);
   const [booted, setBooted] = useState(false);
   const [boot, setBoot] = useState<BootCheck[]>([]);
   const [ticker, setTicker] = useState<TickerRow[]>([]);
@@ -244,6 +249,17 @@ export default function CommandCenter() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // ---- voice alerts (P38): watches the state already polled above, no extra fetches
+  useMarketVoiceAlerts({
+    lang,
+    enabled: voice.enabled,
+    announce: voice.announce,
+    ticker,
+    radar,
+    intel,
+    prioritySymbols: PRIORITY_SYMBOLS,
+  });
+
   // ---- terminal send with auto-translate (P22)
   const sendContent = useCallback(
     async (content: string) => {
@@ -280,7 +296,16 @@ export default function CommandCenter() {
           }
         }
         setMessages((m) => [...m, { author: "user", content }, { author: payload.author ?? "orion-cio", content: reply, original }]);
-        if (payload.cio) setLastCio(payload.cio);
+        if (payload.cio) {
+          setLastCio(payload.cio);
+          // P40 — voz interactiva: narra lo que la mesa (CIO + especialistas)
+          // acaba de concluir, usando el texto real ya generado (nada inventado).
+          if (payload.cio.reply) {
+            for (const phrase of buildCioNarrationPhrases(payload.cio.reply, lang)) {
+              voice.announce(phrase);
+            }
+          }
+        }
       } finally {
         setSending(false);
       }
@@ -315,6 +340,16 @@ export default function CommandCenter() {
           : systemOverall === "DEGRADED" ? "DATA DEGRADED" : "READY";
   const sessionLabel = ticker.length > 0 ? sessionOfNow() : "…";
 
+  // ---- P41/P42: real per-asset volume intensity feeding the 3D core spiral —
+  // relative_volume comes straight from the scanner via the ticker poll;
+  // 0 (calm/no data) when a symbol has no reading yet, never fabricated.
+  const assetVolumes: OrionAssetVolume[] = SPIRAL_ASSETS.map((a) => {
+    const row = ticker.find((r) => r.symbol === a.symbol);
+    const rv = row?.relative_volume ?? null;
+    const intensity = rv != null ? Math.max(0, Math.min(1, rv / 2.2)) : 0;
+    return { symbol: a.symbol, color: a.hex, intensity };
+  });
+
   if (!booted) {
     return <BootScreen boot={boot} onEnter={() => setBooted(true)} apiError={apiError} onRetry={runBoot} />;
   }
@@ -346,6 +381,22 @@ export default function CommandCenter() {
             title={t("auto_translate")}
           >
             AUTO TRAD: {autoTranslate ? "ON" : "OFF"}
+          </button>
+          <button
+            onClick={() => voice.setEnabled(!voice.enabled)}
+            disabled={!voice.supported}
+            className={`px-2 py-0.5 rounded border disabled:opacity-40 ${
+              voice.enabled ? "border-[#22c55e]/60 text-[#22c55e]" : "border-[#1e2936] text-[#71809a]"
+            }`}
+            title={
+              voice.supported
+                ? voice.openaiReady
+                  ? "Alertas de voz de ORION — motor OpenAI TTS (Settings > Voz IA)"
+                  : "Alertas de voz de ORION — voz del navegador (configura Settings > Voz IA para mejorarla)"
+                : "Tu navegador no soporta síntesis de voz"
+            }
+          >
+            VOZ: {voice.supported ? (voice.enabled ? `ON${voice.openaiReady ? " · IA" : ""}` : "OFF") : "N/A"}
           </button>
         </div>
       </header>
@@ -414,11 +465,42 @@ export default function CommandCenter() {
           </div>
         </aside>
 
-        {/* center: CIO wheel */}
-        <section className="col-span-12 lg:col-span-6 xl:col-span-7 panel relative min-h-[380px] overflow-hidden">
-          <div className="panel-title">ORION CIO — NÚCLEO MULTIAGENTE</div>
+        {/* center: ORION core — 3D particle visual + live HUD overlays */}
+        <section className="col-span-12 lg:col-span-6 xl:col-span-7 panel relative min-h-[420px] overflow-hidden">
+          <div className="panel-title flex items-center justify-between">
+            <span>ORION CIO — NÚCLEO MULTIAGENTE</span>
+            <span className="normal-case tracking-normal text-[#cdf26a]">
+              {activeAgents.size}/{WHEEL_AGENTS.length} ACTIVOS
+            </span>
+          </div>
           <div className="orion-wheel-glow" />
-          <CioWheel agents={WHEEL_AGENTS} active={activeAgents} thinking={sending} />
+          <OrionCoreScene
+            thinking={sending}
+            activeCount={activeAgents.size}
+            totalCount={WHEEL_AGENTS.length}
+            assets={assetVolumes}
+          />
+          <div className="absolute inset-x-0 top-9 bottom-2 px-3 py-2 flex flex-col justify-between pointer-events-none">
+            <div className="flex justify-between items-start gap-2 flex-wrap">
+              <HudBox label="SESSION" value={sessionLabel} />
+              <HudBox label="REGIME" value={regimeOf(lastCio)} />
+              <HudBox label="BIAS" value={biasTotal != null ? `${biasTotal} · ${biasBand}` : "—"} />
+            </div>
+            <div className="flex justify-center">
+              <span className="text-[10px] tracking-[0.35em] text-[#cdf26a]/90 select-none">
+                {sending ? "ORION · THINKING…" : "ORION"}
+              </span>
+            </div>
+            <div className="flex justify-between items-end gap-2 flex-wrap">
+              <HudBox
+                label="DECISION"
+                value={decision}
+                tone={decision === "TRADE" ? "green" : decision === "NO_TRADE" ? "red" : "amber"}
+              />
+              <VolumeFlowBox ticker={ticker} assets={SPIRAL_ASSETS} />
+              <HudBox label="AGENTS" value={`${activeAgents.size}/${WHEEL_AGENTS.length}`} />
+            </div>
+          </div>
         </section>
 
         {/* right: intelligence */}
@@ -491,7 +573,7 @@ export default function CommandCenter() {
               </p>
             )}
             {messages.map((m, i) => (
-              <p key={i} className="text-[11px] leading-relaxed whitespace-pre-wrap">
+              <div key={i} className="text-[11px] leading-relaxed whitespace-pre-wrap">
                 <span className={m.author === "user" ? "text-[#38bdf8]"
                   : m.author === "system" ? "text-[#ef4444]" : "text-[#22c55e]"}>
                   [{m.author}]
@@ -509,7 +591,7 @@ export default function CommandCenter() {
                     <span className="block border-l border-[#1e2936] pl-2 mt-1 whitespace-pre-wrap">{m.original}</span>
                   </details>
                 )}
-              </p>
+              </div>
             ))}
             <div ref={bottomRef} />
           </div>
@@ -581,11 +663,71 @@ function Dot({ ok }: { ok: boolean }) {
   return <span className={ok ? "text-[#22c55e]" : "text-[#f59e0b]"}>●</span>;
 }
 
+function HudBox({
+  label, value, tone = "default",
+}: { label: string; value: string; tone?: "default" | "green" | "red" | "amber" | "blue" }) {
+  const color = tone === "green" ? "text-[#22c55e]" : tone === "red" ? "text-[#ef4444]"
+    : tone === "amber" ? "text-[#f59e0b]" : tone === "blue" ? "text-[#38bdf8]" : "text-[#cdf26a]";
+  return (
+    <div className="orion-hud-box">
+      <span className="orion-hud-label">{label}</span>
+      <span className={`orion-hud-value ${color}`}>{value}</span>
+    </div>
+  );
+}
+
+function VolumeFlowBox({
+  ticker, assets,
+}: { ticker: TickerRow[]; assets: { symbol: string; label: string; color: string }[] }) {
+  return (
+    <div className="orion-hud-box orion-hud-box-wide">
+      <span className="orion-hud-label">VOLUME FLOW · REL. VOL EN VIVO</span>
+      <div className="flex items-end gap-3 h-14 mt-1">
+        {assets.map((a) => {
+          const row = ticker.find((r) => r.symbol === a.symbol);
+          const rv = row?.relative_volume ?? null;
+          const pct = rv != null ? Math.max(6, Math.min(100, (rv / 2.2) * 100)) : 0;
+          return (
+            <div
+              key={a.symbol}
+              className="flex flex-col items-center gap-1 w-9"
+              title={rv != null ? `${a.symbol}: volumen relativo ${rv.toFixed(2)}×` : `${a.symbol}: sin dato de volumen todavía`}
+            >
+              <div className="w-2.5 rounded-sm bg-[#1e2936] flex items-end overflow-hidden" style={{ height: 32 }}>
+                <div
+                  className="w-full transition-[height] duration-500"
+                  style={{ height: rv != null ? `${pct}%` : "2px", opacity: rv != null ? 0.95 : 0.3, background: a.color }}
+                />
+              </div>
+              <span className="text-[8px] font-semibold" style={{ color: a.color }}>{a.label}</span>
+              <span className="text-[8px] text-[#9db2d0] tabular-nums">{rv != null ? `${rv.toFixed(2)}×` : "N/A"}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 const FALLBACK_TICKER: TickerRow[] = [
   "XAUUSD", "NQ", "EURUSD", "GBPUSD", "DXY", "US10Y", "VIX", "SPX", "BTCUSD", "XRPUSD",
 ].map((s) => ({ symbol: s, price: null, change_pct: null, status: "…" }));
 
 const PRIORITY_SYMBOLS = new Set(["XAUUSD", "NQ", "EURUSD", "GBPUSD"]);
+
+// P42: per-asset colors for the 3D volume spiral + the volume-flow panel.
+// XAUUSD/BTCUSD/XRPUSD colors per the user's explicit request (fucsia/naranja/azul);
+// NQ/EURUSD/GBPUSD get their own distinct colors so every strand reads at a glance.
+// Note: EURUSD/GBPUSD honestly show N/A most of the time — the scanner's relative-volume
+// feature only covers XAUUSD/NQ/BTCUSD/XRPUSD today (spot FX has no centralized volume).
+const SPIRAL_ASSETS: { symbol: string; label: string; color: string; hex: number }[] = [
+  { symbol: "XAUUSD", label: "XAU", color: "#e930ff", hex: 0xe930ff },
+  { symbol: "NQ", label: "NQ", color: "#22d3ee", hex: 0x22d3ee },
+  { symbol: "BTCUSD", label: "BTC", color: "#ff9d2f", hex: 0xff9d2f },
+  { symbol: "XRPUSD", label: "XRP", color: "#3b82f6", hex: 0x3b82f6 },
+  { symbol: "EURUSD", label: "EUR", color: "#a78bfa", hex: 0xa78bfa },
+  { symbol: "GBPUSD", label: "GBP", color: "#fb7185", hex: 0xfb7185 },
+];
 
 function fmtPrice(p: number): string {
   if (p >= 1000) return p.toLocaleString("en-US", { maximumFractionDigits: 2 });
