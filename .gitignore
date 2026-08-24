@@ -48,3 +48,7 @@ desktop.ini
 
 data/*.db-shm
 data/*.db-wal
+data/*.jsonl
+
+# --- Salida de depuración suelta en la raíz ---
+ruff_*.txt
