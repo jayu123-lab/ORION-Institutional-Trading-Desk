@@ -1,3 +1,3 @@
-from .windows import notify_windows
+from core.notifications.notifier import NotificationEngine, AlertLevel
 
-__all__ = ["notify_windows"]
+__all__ = ["NotificationEngine", "AlertLevel"]
