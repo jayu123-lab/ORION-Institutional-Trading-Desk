@@ -34,6 +34,8 @@ from .routers import (
     system,
     voice,
 )
+from . import dashboard_routes, websocket_routes
+from .websocket_manager import WebSocketConnectionManager, WebSocketEventBridge
 
 
 @asynccontextmanager
@@ -43,9 +45,21 @@ async def lifespan(app: FastAPI):
     _seed_assets()
     bus = get_event_bus()
     bus.start()
+
+    # Initialize WebSocket manager and event bridge
+    ws_manager = WebSocketConnectionManager()
+    ws_bridge = WebSocketEventBridge(ws_manager, bus)
+    websocket_routes.init_websocket(ws_manager, ws_bridge)
+    await ws_bridge.start()
+
     ws_task: asyncio.Task | None = None
     data_task: asyncio.Task | None = None
+    heartbeat_task: asyncio.Task | None = None
     data_service = None
+
+    # Start WebSocket heartbeat
+    heartbeat_task = asyncio.create_task(ws_bridge.send_heartbeat(), name="ws-heartbeat")
+
     if get_settings().orion_embedded_data:
         from apps.api.background import EmbeddedDataService
 
@@ -64,6 +78,8 @@ async def lifespan(app: FastAPI):
         data_task.cancel()
     if ws_task is not None:
         ws_task.cancel()
+    if heartbeat_task is not None:
+        heartbeat_task.cancel()
     await bus.stop()
 
 
@@ -150,23 +166,7 @@ for router_module in (
 ):
     app.include_router(router_module.router)
 app.include_router(tv_router)
+app.include_router(dashboard_routes.router)
+app.include_router(websocket_routes.router)
 
 
-@app.websocket("/ws/events")
-async def ws_events(websocket: WebSocket) -> None:
-    """Broadcast bus events to dashboard clients."""
-    await websocket.accept()
-
-    queue: asyncio.Queue = asyncio.Queue()
-    bus = get_event_bus()
-
-    async def forward(event) -> None:  # noqa: ANN001
-        await queue.put(event.to_dict())
-
-    bus.subscribe("*", forward)
-    try:
-        while True:
-            data = await queue.get()
-            await websocket.send_json(data)
-    except WebSocketDisconnect:
-        return
