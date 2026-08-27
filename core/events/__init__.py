@@ -1,3 +1,3 @@
-from core.events.bus import Event, EventBusLike, InMemoryEventBus  # re-export
+from core.events.economic_calendar import EconomicEvent, EconomicCalendar
 
-__all__ = ["Event", "InMemoryEventBus", "EventBusLike"]
+__all__ = ["EconomicEvent", "EconomicCalendar"]
